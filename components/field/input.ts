@@ -1,5 +1,6 @@
 // Input: pointer, wheel, touch and keyboard bindings for the field stage.
 import type Field from "./Field";
+import { keyPan } from "./interior";
 
 export function used(f: Field) { if (!f.hintGone) f.hintGone = true; }
 
@@ -21,9 +22,8 @@ export function bindStage(f: Field, el: HTMLElement) {
 
   el.addEventListener("wheel", (e: WheelEvent) => {
     e.preventDefault(); f.used();
-    // swallow trackpad momentum for a beat after a close, so the tail of a
-    // dismiss gesture doesn't get read as a new pan
-    if (performance.now() < (f.wheelBlockUntil || 0)) { f.wheelBlockUntil = performance.now() + 160; return; }
+    // inside an entity the field camera stays put; its own composition takes the gesture
+    if (f.state.open) return;
     const lateral = Math.abs(e.deltaX) > Math.abs(e.deltaY);
     const dx = lateral ? e.deltaX : (e.shiftKey ? e.deltaY : 0);
     const dy = (lateral || e.shiftKey) ? 0 : e.deltaY;
@@ -51,10 +51,11 @@ export function bindStage(f: Field, el: HTMLElement) {
     }
     f.tick();
   }, sig);
-  el.addEventListener("pointerdown", (e: PointerEvent) => { f.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0, captured: false }; }, sig);
+  el.addEventListener("pointerdown", (e: PointerEvent) => { if (f.state.open) return; f.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0, captured: false }; }, sig);
   el.addEventListener("pointercancel", () => { f.drag = null; }, sig);
   el.addEventListener("pointerup", (e: PointerEvent) => {
     const d = f.drag; f.drag = null;
+    if (f.state.open) return;
     if (d && d.moved > 8) { f.suppressClick = performance.now(); return; }
     if (e.pointerType !== "mouse") {
       const r = el.getBoundingClientRect();
@@ -86,11 +87,11 @@ export function keydown(f: Field, e: KeyboardEvent) {
   const ae = document.activeElement as HTMLElement | null, typing = !!(ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA"));
   if (e.key === "Escape") {
     if (typing) { ae!.blur(); f.setState({ askOpen: false }); return; }
-    if (f.state.open) { f.liftDir = -1; f.committing = true; f.liftWant = 1; f.tick(); e.preventDefault(); }
+    if (f.state.open) { f.collapse(); e.preventDefault(); }
     return;
   }
   if (typing) return;
-  if (f.state.open) return;
+  if (f.state.open) { if (keyPan(f, e)) e.preventDefault(); return; }
   const step = e.shiftKey ? 900 : 340;
   if (e.key === "ArrowUp") { f.forward(step); f.used(); f.tick(); e.preventDefault(); return; }
   if (e.key === "ArrowDown") { f.forward(-step); f.used(); f.tick(); e.preventDefault(); return; }

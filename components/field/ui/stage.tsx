@@ -1,4 +1,4 @@
-// Stage layer: the 3D world of cards, a single card, and the media slot that sits beside the detail panel.
+// Stage layer: the 3D world of cards and a single card.
 import type { V, PlateSeg, NoteMark } from "../types";
 
 // Card DOM order is load-bearing: frame() reads el.firstElementChild as the plate svg
@@ -57,20 +57,6 @@ export function renderNode(n: any, v: V) {
           {n.traceLabel}
         </div>
       )}
-    </div>
-  );
-}
-
-// Sits beside the detail panel, not inside it: [data-role="page"] is transformed, blurred and
-// overflow-hidden, which would clip and restyle the live element.
-export function renderMediaStage(v: V) {
-  return (
-    <div data-role="mediastage" style={{ position: "absolute", inset: 0, zIndex: 31, opacity: 0, visibility: "hidden", pointerEvents: "none" }}>
-      <div data-part="slot" style={{ position: "absolute", inset: 0, pointerEvents: "auto" }} />
-      <div role="button" tabIndex={0} onClick={v.onClose} onKeyDown={v.onCloseKey} className="field-label field-hover-split" style={{ position: "absolute", top: 15, left: "clamp(18px, 3vw, 42px)", display: "flex", alignItems: "center", gap: 9, cursor: "pointer", outline: "none", fontSize: 10, color: "rgba(var(--field-mute-rgb), 0.85)", transition: "color 400ms ease", pointerEvents: "auto" }}>
-        <span>←</span>
-        <span>put it back</span>
-      </div>
     </div>
   );
 }

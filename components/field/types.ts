@@ -59,7 +59,6 @@ export type State = {
   view: string | null;
   noteTxt: string;
   noteRev: number;
-  notesOpen: boolean;
   hand: string | null;
   tracksOn: boolean;
   catalogue: boolean;

@@ -112,11 +112,14 @@ export function notesVals(f: Field, st: State, out: Vals): void {
   out.notesHere = here.map(n => {
     const go = () => f.setState({ view: n.id });
     return {
-      marks: n.marks || [], drawn: !!(n.marks && n.marks.length), img: n.img || null,
+      id: n.id, marks: n.marks || [], drawn: !!(n.marks && n.marks.length), img: n.img || null,
       ink: n.ink || f.inkColor(), txt: n.txt, by: n.mine ? "left by you" : "left by " + n.by,
       imgCss: n.img ? "url(" + n.img + ")" : null,
       short: n.txt.length > 88 ? n.txt.slice(0, 86).replace(/[\s,.;]+$/, "") + "…" : n.txt,
       sheet: !!((n.marks && n.marks.length) || n.img), written: !((n.marks && n.marks.length) || n.img),
+      on: st.hand === n.id,
+      enter: () => f.setState({ hand: n.id }),
+      leave: () => { if (f.state.hand === n.id) f.setState({ hand: null }); },
       open: go, key: key(go)
     };
   });
@@ -131,25 +134,6 @@ export function notesVals(f: Field, st: State, out: Vals): void {
   out.overlayLabel = handOf ? "one hand · " + (handOf.mine ? "you" : handOf.by)
     : drawnHere.length ? drawnHere.length + (drawnHere.length === 1 ? " sheet laid over it" : " sheets laid over each other")
     : "no sheets laid over it yet";
-  out.hands = here.map(n => {
-    const on = hand === n.id;
-    const go = () => f.setState({ view: n.id });
-    return {
-      by: n.mine ? "you" : n.by, short: n.txt, ink: n.ink || f.inkColor(),
-      dot: on ? "1" : (n.marks && n.marks.length ? "0.45" : "0.16"),
-      bg: on ? "rgba(110,154,141,0.09)" : "#090D0F",
-      byColor: on ? "#6E9A8D" : "rgba(142,148,145,0.75)",
-      txtColor: on ? "#E4DFD2" : "rgba(201,197,185,0.6)",
-      enter: () => f.setState({ hand: n.id }),
-      leave: () => { if (f.state.hand === n.id) f.setState({ hand: null }); },
-      open: go, key: key(go)
-    };
-  });
-  out.notesOpen = st.notesOpen && here.length > 0;
-  out.gridHint = here.length === 0 ? "nothing left here yet"
-    : out.notesOpen ? "fold the sheets back" : "lay all " + here.length + " out as sheets";
-  out.onNotesToggle = () => f.setState({ notesOpen: !f.state.notesOpen });
-  out.onNotesToggleKey = key(() => f.setState({ notesOpen: !f.state.notesOpen }));
 }
 
 export function composeVals(f: Field, st: State, out: Vals): void {

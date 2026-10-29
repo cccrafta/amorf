@@ -94,12 +94,6 @@ body[data-field] :focus-visible {
   outline: 1px solid var(--field-accent);
   outline-offset: 3px;
 }
-body[data-field] [data-role="detail"]::-webkit-scrollbar {
-  width: 8px;
-}
-body[data-field] [data-role="detail"]::-webkit-scrollbar-thumb {
-  background: rgba(110, 154, 141, 0.35);
-}
 body[data-field] canvas {
   touch-action: none;
 }

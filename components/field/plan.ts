@@ -44,7 +44,7 @@ export function planVals(f: Field, st: State, out: Vals): void {
   const pc = (o: FieldNode) => (o.hx / f.TILE * 100).toFixed(2) + "," + (o.hz / f.TILE * 100).toFixed(2);
   const routeOf = (ids: string[]) => ids.map(id => f.byId(id)).filter(Boolean).map((o, i) => (i ? "L" : "M") + pc(o)).join("");
   out.plan = st.plan;
-  out.onPlan = () => { f.panelWant = 0; f.setState({ plan: !f.state.plan, catalogue: false, tableOpen: false, compose: null, view: null }); };
+  out.onPlan = () => { f.collapse(); f.setState({ plan: !f.state.plan, catalogue: false, tableOpen: false, compose: null, view: null }); };
   out.onPlanKey = key(() => out.onPlan());
   out.onClosePlan = () => f.setState({ plan: false });
   out.onClosePlanKey = key(out.onClosePlan);

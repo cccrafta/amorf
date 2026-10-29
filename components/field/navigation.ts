@@ -4,6 +4,7 @@ import type Field from "./Field";
 import type { Walk } from "./types";
 import { gap, yearLabel } from "./chronology";
 import { wrap } from "./util";
+import { begin, dismiss } from "./interior";
 
 // A journey holds only its own objects; following a lead out of it opens the
 // field back up rather than sending you to something you cannot see.
@@ -13,6 +14,8 @@ export function clearFilterFor(f: Field, id: string) {
 
 export function open(f: Field, id: string, mark: string) {
   if (f.suppressClick && performance.now() - f.suppressClick < 220) return;
+  // Reaching for another entity from inside one is a pull-back first; the leave opens it once the field is back.
+  if (f.state.open) { if (f.state.open !== id) f.leaveToward(id, mark, false); return; }
   f.clearFilterFor(id);
   const o = f.byId(id);
   f.visited[id] = true;
@@ -38,11 +41,9 @@ export function open(f: Field, id: string, mark: string) {
   if (f.jumpTimer) clearTimeout(f.jumpTimer);
   f.jumpTimer = f.later(() => f.setState({ jump: null }), 7000);
   f.lastStandX = f.cam.x; f.lastStandZ = f.cam.z;
-  f.panelWant = 1; f.lift = 0; f.liftWant = 0; f.committing = false; f.committed = false; f.liftDir = -1; f.edgeSince = 0;
+  begin(f);
   f.setState({ open: id, trace, cursor: trace.length - 1, askOpen: false });
   f.approach(id, 520);
-  const dv = document.querySelector<HTMLElement>('[data-role="pagescroll"]');
-  if (dv) dv.scrollTop = 0;
 }
 
 export function approach(f: Field, id: string, dist: number) {
@@ -59,6 +60,7 @@ export function approach(f: Field, id: string, dist: number) {
 }
 
 export function flyTo(f: Field, id: string, mark: string, allowFriction: boolean, andOpen: boolean) {
+  if (andOpen && f.state.open) { f.leaveToward(id, mark, allowFriction); return; }
   f.clearFilterFor(id);
   let target = id, m = mark;
   f.navCount += 1;
@@ -117,6 +119,6 @@ export function commitName(f: Field, e?: React.FormEvent) {
   f.NOTES.forEach(n => { if (n.mine && !n.walk) n.walk = name; });
   const seeded = ([{ name, steps: f.state.trace.map(t => t.id) }] as Walk[]).concat(f.state.seeded);
   f.visited = {};
-  f.panelWant = 0;
+  dismiss(f);
   f.setState({ seeded, naming: false, nameValue: "", trace: [], cursor: -1, open: null, joined: null, query: "", askOpen: false }, () => f.recomputeWear());
 }

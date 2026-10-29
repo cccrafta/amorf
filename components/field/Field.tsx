@@ -24,15 +24,17 @@ import * as inputs from "./input";
 import * as notes from "./notes";
 import * as plan from "./plan";
 import * as table from "./table";
+import * as interior from "./interior";
 import { syncMedia } from "./media";
 import { catalogueVals } from "./catalogue";
 import { notesVals, composeVals, viewVals } from "./notes";
 import { planVals } from "./plan";
 import { tableVals } from "./table";
-import { renderMediaStage, renderStage } from "./ui/stage";
+import { interiorVals } from "./interior";
+import { renderStage } from "./ui/stage";
 import { renderHud, renderJump, renderFocusbar, renderHint, renderOthers } from "./ui/hud";
 import { renderTraceRail, renderJourneybar } from "./ui/trace";
-import { renderDetail } from "./ui/detail";
+import { renderInterior } from "./ui/interior";
 import { renderCatalogue } from "./ui/catalogue";
 import { renderView, renderCompose } from "./ui/notes";
 import { renderPlan } from "./ui/plan";
@@ -62,7 +64,6 @@ export default class Field extends React.Component<Props, State> {
     view: null,
     noteTxt: "",
     noteRev: 0,
-    notesOpen: false,
     hand: null,
     tracksOn: true,
     catalogue: false,
@@ -84,7 +85,7 @@ export default class Field extends React.Component<Props, State> {
   cam = { x: 0, z: 0, tx: 0, tz: 0, yaw: 0, tyaw: 0 };
   els: Record<string, HTMLElement> = {};
   visited: Record<string, boolean> = {};
-  screenPos: Record<string, { sx: number; sy: number }> = {};
+  screenPos: Record<string, { sx: number; sy: number; scale: number }> = {};
   navCount = 0;
   lastFriction = true;
   timers: ReturnType<typeof setTimeout>[] = [];
@@ -134,32 +135,17 @@ export default class Field extends React.Component<Props, State> {
   hueMap: Record<string, string> | undefined;
   hueNext = 0;
   filterSet: Set<string> | null = null;
-  panelWant = 0;
-  panelT = 0;
-  sheetT = 0;
-  lift = 0;
-  liftWant = 0;
-  liftDir = -1;
-  liftIdleAt = 0;
-  committing = false;
-  committed = false;
-  edgeSince = 0;
-  closeQueued = false;
-  wheelBlockUntil = 0;
+  ix: interior.Interior = interior.newInterior();
   suppressClick = 0;
   standAt: { x: number; z: number } | null = null;
   lastStandX?: number;
   lastStandZ?: number;
-  frameW: Record<string, number> = {};
   keepClear: { l: number; r: number; t: number; b: number; ramp: number }[] = [];
-  keepClearRail = 0;
   noteTimer: ReturnType<typeof setTimeout> | null = null;
   jumpTimer: ReturnType<typeof setTimeout> | null = null;
   nodes: any[] | null = null;
   onGesture?: () => void;
-  mediaStage: HTMLElement | null = null;
   mediaSlot: HTMLElement | null = null;
-  mediaStageKey = "";
   // 0..1 world-distance closeness per object, written by frame() regardless of whether the card is drawn.
   near: Record<string, number> = {};
 
@@ -213,6 +199,7 @@ export default class Field extends React.Component<Props, State> {
     this.onResize = () => {
       this.lastW = -1; this.layout(); this.tick();
       if (this.paperFit) this.paperFit();
+      if (this.state.open) this.forceUpdate();
       if (this.state.plan) this.placePlanLabels();
       if (this.state.table.length) {
         const m = this.tableMetrics();
@@ -224,7 +211,7 @@ export default class Field extends React.Component<Props, State> {
     this.resolve();
     this.resolveTimer = setInterval(() => this.resolve(), 250);
     this.lastT = performance.now();
-    this.tick = () => { try { this.frame(); } catch (err) {} };
+    this.tick = () => { try { this.frame(); } catch (err) { if (process.env.NODE_ENV !== "production") console.error(err); } };
     window.__amorfActive = this;
     this.startLoop();
     this.tick();
@@ -290,46 +277,8 @@ export default class Field extends React.Component<Props, State> {
     this.input = this.input || (q("ask") as HTMLInputElement | null);
     if (this.input && this.wantFocus) { this.wantFocus = false; this.input.focus(); }
 
-    const scroller = document.querySelector<HTMLElement>('[data-role="pagescroll"]');
-    if (scroller && (scroller as any).__amorfBound !== this) {
-      (scroller as any).__amorfBound = this;
-      scroller.addEventListener("wheel", (e: WheelEvent) => {
-        const dxRaw = e.shiftKey ? e.deltaY : e.deltaX;
-        if (Math.abs(dxRaw) <= Math.abs(e.deltaY) && !e.shiftKey) { this.liftIdleAt = performance.now(); return; }
-        if (!dxRaw) return;
-        e.preventDefault();
-        const now = performance.now();
-        this.liftDir = dxRaw > 0 ? -1 : 1;
-        this.liftWant = Math.min(1, (this.liftWant || 0) + Math.abs(dxRaw) * 0.0024);
-        this.liftIdleAt = now;
-        if (this.liftWant >= 0.55) { this.committing = true; this.liftWant = 1; }
-        this.tick();
-      }, { passive: false });
-
-      let sw: { x: number; y: number; lock: string | null } | null = null;
-      scroller.addEventListener("touchstart", (e: TouchEvent) => {
-        sw = { x: e.touches[0].clientX, y: e.touches[0].clientY, lock: null };
-      }, { passive: true });
-      scroller.addEventListener("touchmove", (e: TouchEvent) => {
-        if (!sw) return;
-        const t = e.touches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y;
-        if (!sw.lock && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) sw.lock = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-        if (sw.lock !== "x") return;
-        if (e.cancelable) e.preventDefault();
-        this.liftDir = dx > 0 ? 1 : -1;
-        this.liftWant = Math.min(1, Math.abs(dx) / (window.innerWidth * 0.38));
-        this.liftIdleAt = performance.now() + 400;
-        this.tick();
-      }, { passive: false });
-      scroller.addEventListener("touchend", () => {
-        if (sw && sw.lock === "x") {
-          if ((this.liftWant || 0) >= 0.5) { this.committing = true; this.liftWant = 1; }
-          else { this.liftWant = 0; this.liftIdleAt = performance.now() - 1000; }
-          this.tick();
-        }
-        sw = null;
-      }, { passive: true });
-    }
+    const inner = q("interior");
+    if (inner && (inner as any).__amorfOwner !== this) { (inner as any).__amorfOwner = this; interior.bindInterior(this, inner); }
 
     this.tracks = this.tracks || (q("tracks") as unknown as SVGSVGElement | null);
     const paper = q("paper") as HTMLCanvasElement | null;
@@ -427,58 +376,15 @@ export default class Field extends React.Component<Props, State> {
     cam.z += (cam.tz - cam.z) * kp;
     cam.yaw += (cam.tyaw - cam.yaw) * ky;
 
-    const wantPanel = this.panelWant || 0;
-    this.panelT = (this.panelT || 0) + (wantPanel - (this.panelT || 0)) * (this.reduced ? 1 : Math.min(1, 1 - Math.exp(-dt / 150)));
-    if (this.panelT < 0.02 && !wantPanel) {
-      this.panelT = 0;
-      // one-shot: without closeQueued this would re-arm the close every frame
-      // the panel sits at rest, firing setState in a tight loop
-      if (this.state.open && !this.closeQueued) {
-        this.lift = 0; this.liftWant = 0; this.committed = false; this.committing = false; this.edgeSince = 0;
-        this.wheelBlockUntil = performance.now() + 420;
-        this.closeQueued = true;
-        this.setState({ open: null }, () => { this.closeQueued = false; });
-      }
-    }
-    const pT = this.panelT;
-    const panel = pT > 0 ? document.querySelector<HTMLElement>('[data-role="detail"]') : null;
+    interior.step(this, dt, now);
+    const depth = this.ix.depth;
 
-    if (this.liftIdleAt && performance.now() - this.liftIdleAt > 150 && !this.committing && !this.committed) this.liftWant = 0;
-    this.lift = (this.lift || 0) + ((this.liftWant || 0) - (this.lift || 0)) * (this.reduced ? 1 : Math.min(1, 1 - Math.exp(-dt / 110)));
-    if (this.committing && this.lift > 0.9) { this.committing = false; this.committed = true; this.panelWant = 0; }
-    if (this.committed) { this.liftWant = 1; this.lift = Math.max(this.lift, 1); }
-    const lift = Math.min(1, this.lift || 0);
-    const give = Math.max(0, (lift - 0.4) / 0.6);
-    const liftVis = Math.min(1, Math.pow(give, 1.5));
-    // the panel resists, then releases quickly past the give point, so a
-    // dismiss reads as a decision rather than a drag reaching a wall
-    const sheetT = pT * (1 - liftVis * 0.92);
-    this.sheetT = sheetT;
-    if (panel) {
-      const pg = panel.querySelector<HTMLElement>('[data-role="page"]');
-      if (pg) {
-        const dir = this.liftDir || -1;
-        const enter = this.committed ? 0 : (1 - pT) * (1 - liftVis);
-        const slide = liftVis * 34 * dir;
-        const swing = liftVis * 16 * dir;
-        const shrink = 1 - (1 - pT) * 0.06 - liftVis * 0.1;
-        const origin = (liftVis > 0.01 || this.committed) ? (dir < 0 ? "0% 50%" : "100% 50%") : "50% 100%";
-        if (pg.style.transformOrigin !== origin) pg.style.transformOrigin = origin;
-        pg.style.transform = "translate(" + slide.toFixed(2) + "%, " + (enter * 16).toFixed(2) + "%) rotateX(" + (-enter * 11).toFixed(2) + "deg) rotateY(" + swing.toFixed(2) + "deg) scale(" + shrink.toFixed(3) + ")";
-        pg.style.opacity = Math.min(1, pT * 1.3 * (1 - liftVis * 0.85)).toFixed(3);
-      }
-      const bar = panel.querySelector<HTMLElement>('[data-role="liftbar"]');
-      if (bar) bar.style.width = Math.min(100, (lift / 0.5) * 100).toFixed(1) + "%";
-      const hint = panel.querySelector<HTMLElement>('[data-role="lifthint"]');
-      if (hint) { const t = lift > 0.06 ? "letting it go" : (this.narrow ? "swipe sideways to put it back" : "scroll sideways to put it back"); if (hint.textContent !== t) hint.textContent = t; }
-    }
-
-    const fade = 1 - sheetT;
+    const fade = 1 - depth;
     this.hintW = (this.hintW === undefined ? 1 : this.hintW) + ((this.hintGone ? 0 : 1) - (this.hintW === undefined ? 1 : this.hintW)) * (this.reduced ? 1 : Math.min(1, 1 - Math.exp(-dt / 400)));
     document.querySelectorAll<HTMLElement>('[data-plane-ui]').forEach(el => {
       const isHint = el.getAttribute("data-role") === "hint";
       el.style.opacity = (fade * (isHint ? this.hintW! : 1)).toFixed(3);
-      el.style.pointerEvents = sheetT > 0.4 ? "none" : "auto";
+      el.style.pointerEvents = depth > 0.4 ? "none" : "auto";
     });
     // Objects are positioned in camera-frame coordinates below, so the world
     // layer must stay at identity — rotating it too would apply the yaw twice.
@@ -487,19 +393,13 @@ export default class Field extends React.Component<Props, State> {
     const rad = (cam.yaw * Math.PI) / 180, cs = Math.cos(rad), sn = Math.sin(rad);
     const W = window.innerWidth, H = window.innerHeight;
 
-    const kf = this.reduced ? 1 : Math.min(1, 1 - Math.exp(-dt / 170));
-    if (!this.frameW) this.frameW = {};
-    const shift = 0;
     const target = (this.pointer && now - this.pointerAt < 2600) ? this.pointer : { x: W / 2, y: H * 0.46 };
-    const detail = !!this.state.open;
 
     this.keepClear = [];
-    this.keepClearRail = 0;
     document.querySelectorAll<HTMLElement>("[data-keepclear]").forEach(p => {
       const b = p.getBoundingClientRect();
       if (!b.width || !b.height) return;
       if (parseFloat(getComputedStyle(p).opacity) < 0.06) return;
-      if (b.left <= 1 && b.height > window.innerHeight * 0.6) this.keepClearRail = b.width;
       this.keepClear.push({ l: b.left, r: b.right, t: b.top, b: b.bottom, ramp: parseFloat(p.getAttribute("data-keepclear") || "") || 30 });
     });
 
@@ -527,33 +427,19 @@ export default class Field extends React.Component<Props, State> {
       const pull = Math.max(0, Math.min(wr * 340, -lzRaw - this.NEARC - 60));
       const lz = lzRaw + pull;
       const d = -lz;
-      const wantW = 0;
-      const w = this.frameW[o.id] = (this.frameW[o.id] || 0) + (wantW - (this.frameW[o.id] || 0)) * kf;
-      const framed = w > 0.02;
-      if (d < this.NEARC || (d > this.FAR && !framed) || d > this.FAR * 1.4) { el.style.visibility = "hidden"; continue; }
+      if (d < this.NEARC || d > this.FAR) { el.style.visibility = "hidden"; continue; }
 
       const arrive = smooth(this.FAR, this.FAR * 0.45, d);
-      let pass = smooth(this.NEARC, 300, d);
-      if (framed) pass = Math.max(pass, 0.28 + 0.72 * w);
+      const pass = smooth(this.NEARC, 300, d);
       const farFade = smooth(this.FAR * 1.35, this.FAR * 0.95, d);
-      const op = Math.min(1, (0.36 + 0.64 * arrive) * (1 + wr * 0.24)) * pass * farFade * (1 - 0.55 * sheetT);
+      const op = Math.min(1, (0.36 + 0.64 * arrive) * (1 + wr * 0.24)) * pass * farFade * (1 - 0.55 * depth);
       if (op < 0.03) { el.style.visibility = "hidden"; continue; }
 
       const scale = this.P / (this.P - lz);
-      let useLx = lx, useDy = dy, shiftUse = shift;
-      if (framed) {
-        const freeL = (this.keepClearRail || 0) + 12;
-        const freeR = (panel ? panel.getBoundingClientRect().left : W) - 20;
-        const tCx = (freeL + freeR) / 2, tCy = H * 0.5;
-        const lxT = (tCx - W / 2) / scale, dyT = (tCy - H * 0.46) / scale;
-        useLx = lx + (lxT - lx) * w;
-        useDy = dy + (dyT - dy) * w;
-        shiftUse = shift * (1 - w);
-      }
-      const sx = W / 2 + shiftUse + useLx * scale, sy = H * 0.46 + useDy * scale;
+      const sx = W / 2 + lx * scale, sy = H * 0.46 + dy * scale;
       if (sx < -600 || sx > W + 600) { el.style.visibility = "hidden"; continue; }
 
-      const spared = framed || (this.state.focus && this.state.focus.id === o.id);
+      const spared = this.state.focus && this.state.focus.id === o.id;
       let clear = 1;
       if (this.keepClear && this.keepClear.length && !spared) {
         const cw = 410 * scale, ch = 350 * scale;
@@ -570,12 +456,12 @@ export default class Field extends React.Component<Props, State> {
       el.style.visibility = "visible";
       el.style.opacity = (op * clear).toFixed(3);
       el.style.pointerEvents = op > 0.45 ? "auto" : "none";
-      el.style.filter = this.reduced ? "none" : `blur(${((1 - arrive) * 1.4 + sheetT * 13).toFixed(2)}px)`;
-      el.style.transform = `translate3d(${(useLx + shiftUse / Math.max(0.001, scale)).toFixed(1)}px, ${useDy.toFixed(1)}px, ${lz.toFixed(1)}px) rotateY(${tilt.toFixed(2)}deg) translate(-50%, -50%)`;
-      this.screenPos[o.id] = { sx, sy };
+      el.style.filter = this.reduced ? "none" : `blur(${((1 - arrive) * 1.4 + depth * 13).toFixed(2)}px)`;
+      el.style.transform = `translate3d(${lx.toFixed(1)}px, ${dy.toFixed(1)}px, ${lz.toFixed(1)}px) rotateY(${tilt.toFixed(2)}deg) translate(-50%, -50%)`;
+      this.screenPos[o.id] = { sx, sy, scale };
 
-      // focus is decided by geometry, not by the panel fade — otherwise a
-      // card dimmed behind a panel could never become the focused one
+      // focus is decided by geometry, not by the dive's dimming — otherwise a
+      // card dimmed behind an interior could never become the focused one
       if (op > 0.4) {
         const dist = Math.hypot(sx - target.x, sy - target.y);
         if (dist < 300 && dist < bestD) { bestD = dist; best = o; }
@@ -634,15 +520,14 @@ export default class Field extends React.Component<Props, State> {
     const dragging = !!(this.drag && this.drag.moved > 6);
     const live = this.pointer && now - this.pointerAt < 2600;
     void live;
-    const sheetUp = sheetT > 0.4;
-    const overSheet = sheetUp;
-    const mode = overSheet ? "read" : dragging ? "turning" : best ? "open" : "look";
+    const mode = depth > 0.4 ? "read" : dragging ? "turning" : best ? "open" : "look";
     if (this.stage && this.stage.dataset.mode !== mode) {
       this.stage.style.cursor = mode === "read" ? "default" : mode === "turning" ? "grabbing" : mode === "open" ? "pointer" : "grab";
       this.stage.dataset.mode = mode;
     }
 
-    this.paintTracks(sheetT);
+    this.paintTracks(depth);
+    interior.paint(this);
 
     if (this.state.plan) {
       const you = document.querySelector<HTMLElement>('[data-role="planyou"]');
@@ -672,6 +557,8 @@ export default class Field extends React.Component<Props, State> {
 
   clearFilterFor(id: string) { nav.clearFilterFor(this, id); }
   open(id: string, mark: string) { nav.open(this, id, mark); }
+  collapse() { interior.collapse(this); this.tick(); }
+  leaveToward(id: string, mark?: string, friction?: boolean) { interior.leaveToward(this, id, mark, friction); this.tick(); }
   approach(id: string, dist: number) { nav.approach(this, id, dist); }
   flyTo(id: string, mark: string, allowFriction: boolean, andOpen: boolean) { nav.flyTo(this, id, mark, allowFriction, andOpen); }
   runSearch(q: string) { nav.runSearch(this, q); }
@@ -718,7 +605,7 @@ export default class Field extends React.Component<Props, State> {
       noteCount: String(this.NOTES.filter(n => n.mine).length).padStart(2, "0"),
       catalogue: st.catalogue,
       journeyTally: String(st.seeded.length + (st.trace.length ? 1 : 0)).padStart(2, "0") + " in the collection",
-      onCatalogue: () => { this.panelWant = 0; this.setState({ catalogue: true, open: null, compose: null, view: null }); },
+      onCatalogue: () => { interior.dismiss(this); this.setState({ catalogue: true, open: null, compose: null, view: null }); },
       onCloseCatalogue: () => this.setState({ catalogue: false }),
       onLeaveJourney: () => { this.filterSet = null; this.setState({ filter: null, joined: null }); },
       tracksLabel: st.tracksOn ? "TRACKS ON" : "TRACKS OFF",
@@ -728,56 +615,21 @@ export default class Field extends React.Component<Props, State> {
       onAskBlur: () => { if (!this.state.query.trim()) this.setState({ askOpen: false }); },
       onQueryChange: (e: React.ChangeEvent<HTMLInputElement>) => this.setState({ query: e.target.value }),
       onSubmit: (e: React.FormEvent) => { e.preventDefault(); this.runSearch(this.state.query); },
-      onClose: () => { this.liftDir = -1; this.committing = true; this.liftWant = 1; this.tick(); },
-      onElsewhere: () => { const pool = this.OBJECTS.filter(q => q.id !== st.open); const pick = pool[Math.floor(Math.random() * pool.length)]; this.setState({ joined: null }); this.flyTo(pick.id, "⤳", false, true); },
-      onLeaveTrace: () => { if (st.trace.length) { this.panelWant = 0; this.setState({ naming: true, nameValue: "", open: null }); } },
+      onLeaveTrace: () => { if (st.trace.length) { interior.dismiss(this); this.setState({ naming: true, nameValue: "", open: null }); } },
       onNameChange: (e: React.ChangeEvent<HTMLInputElement>) => this.setState({ nameValue: e.target.value }),
       onCommitName: this.commitName,
-      onCancelName: () => this.setState({ naming: false }),
-      onFollowPassing: () => { const p = this.passingTrace(); if (!p) return; this.setState({ joined: p.trace.name }); this.flyTo(p.trace.steps[p.index + 1], "↓", false, true); }
+      onCancelName: () => this.setState({ naming: false })
     };
     out.onTracksKey = key(out.onTracks);
     out.onCatalogueKey = key(out.onCatalogue);
     out.onCloseCatalogueKey = key(out.onCloseCatalogue);
     out.onLeaveJourneyKey = key(out.onLeaveJourney);
     out.onAskOpenKey = key(out.onAskOpen);
-    out.onCloseKey = key(out.onClose);
-    out.onElsewhereKey = key(out.onElsewhere);
     out.onLeaveTraceKey = key(out.onLeaveTrace);
     out.onCommitNameKey = key(() => this.commitName());
     out.onCancelNameKey = key(out.onCancelName);
-    out.onFollowPassingKey = key(out.onFollowPassing);
 
     catalogueVals(this, st, out);
-
-    const o = st.open ? this.byId(st.open) : null;
-    if (o) {
-      const idx = this.OBJECTS.indexOf(o) + 1;
-      out.detail = {
-        id: o.id, title: o.t, stamp: o.k + (o.y ? " · " + o.y : ""),
-        ref: "[a}morf · " + String(idx).padStart(3, "0") + " / " + this.OBJECTS.length,
-        plate: plate(o),
-        media: (o.media || []).map((m, i) => ({ kind: m.kind, cap: m.cap, plate: plate(o, "v" + i, m.kind), img: m.img || null, imgCss: m.img ? "url(" + m.img + ")" : null })),
-        paras: o.p.map(t => ({ t })),
-        notes: o.notes || [],
-        facts: [
-          { k: "medium", v: o.k },
-          { k: "date", v: o.y || "undated" },
-          { k: "place", v: o.place || "unplaced" },
-          { k: "source", v: o.src || "unattributed" },
-          { k: "tags", v: o.tags.slice(0, 5).join(" · ") }
-        ]
-      };
-      out.assocs = this.ASSOC.filter(a => a[0] === o.id || a[1] === o.id).slice(0, 4).map(a => {
-        const other = a[0] === o.id ? a[1] : a[0];
-        const go = () => this.flyTo(other, "↓", true, true);
-        return { reason: a[2], title: this.byId(other).t, go, key: key(go) };
-      });
-      const p = this.passingTrace();
-      out.passing = p ? p.trace.name : null;
-    } else {
-      out.detail = null; out.assocs = []; out.passing = null;
-    }
 
     out.trace = st.trace.map((s, i) => {
       const obj = this.byId(s.id);
@@ -810,6 +662,8 @@ export default class Field extends React.Component<Props, State> {
 
     viewVals(this, st, out);
 
+    interiorVals(this, st, out);
+
     const keptFirst = st.seeded.slice().sort((a, b) => ((st.kept[b.name] ? 1 : 0) - (st.kept[a.name] ? 1 : 0)));
     out.seeded = keptFirst.slice(0, 4).map(t => {
       const go = () => { this.setState({ joined: t.name }); this.flyTo(t.steps[0], "↓", false, true); };
@@ -839,8 +693,7 @@ export default class Field extends React.Component<Props, State> {
         {v.inJourney && renderJourneybar(v)}
         {renderHint()}
         {v.others && renderOthers(v)}
-        {v.detail && renderDetail(v)}
-        {renderMediaStage(v)}
+        {v.interior && renderInterior(v)}
         {v.catalogue && renderCatalogue(v)}
         {v.view && renderView(v)}
         {v.compose && renderCompose(v)}

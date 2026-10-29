@@ -138,7 +138,7 @@ export function tableVals(f: Field, st: State, out: Vals): void {
   out.table = st.tableOpen;
   out.tableLabel = st.table.length ? "TABLE " + String(st.table.length).padStart(2, "0") : "TABLE —";
   out.tableColor = st.table.length ? "#6E9A8D" : "rgba(142,148,145,0.55)";
-  out.onTable = () => { f.panelWant = 0; f.setState({ tableOpen: true, plan: false, catalogue: false, compose: null, view: null }); };
+  out.onTable = () => { f.collapse(); f.setState({ tableOpen: true, plan: false, catalogue: false, compose: null, view: null }); };
   out.onTableKey = key(() => out.onTable());
   out.onCloseTable = () => f.setState({ tableOpen: false });
   out.onCloseTableKey = key(out.onCloseTable);

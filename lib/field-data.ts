@@ -6,7 +6,8 @@ export type FieldObject = {
   place: string;
   src: string;
   p: string[];
-  media: { kind: string; cap: string; img?: string; src?: string; poster?: string }[];
+  // at: optional curator placement in the entity's interior, as [x, y] fractions of the composition; overrides the generated position.
+  media: { kind: string; cap: string; img?: string; src?: string; poster?: string; at?: [number, number] }[];
   notes: { txt: string; by: string }[];
   tags: string[];
 };
