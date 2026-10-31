@@ -1,0 +1,71 @@
+/* Color token declarations — the only place raw color values live.
+   App CSS references these via var(); translucent variants use color-mix() on a token. */
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* field palette: always dark regardless of OS theme. Raw print look: black void, flat grey
+   panels, plain Times, blue for titles/labels/lines, red for running text and checked marks.
+   Depth comes from lightness alone (bg-mid at the vanishing point, bg-dark at the edges). */
+:root {
+  --field-blue: #4a63c4;
+  --field-red: #e2553a;
+
+  --field-bg: #1e1e1e;
+  --field-bg-mid: #111111;
+  --field-bg-dark: #000000;
+  --field-frame: #2b2b2b;
+  --field-ink: #bdbab0;
+  --field-ink-warm: #c9c5b9;
+  --field-title: var(--field-blue);
+  --field-body: var(--field-red);
+  --field-label: var(--field-blue);
+  /* no highlight color: selected/active states read in plain ink */
+  --field-accent: var(--field-ink);
+  --field-accent-tan: #a88a6a;
+  --field-tan: #b08968;
+  --field-mist: #7a7a7a;
+  --field-line: #8a8876;
+  --field-walk: var(--field-blue);
+  /* same color as --field-mist, as an r,g,b triplet for rgba(var(--field-mute-rgb), a) in inline styles */
+  --field-mute-rgb: 122, 122, 122;
+
+  /* mirrored by TRACK_HUES in components/field/tracks.ts, which needs literal values */
+  --track-hue-1: var(--field-blue);
+  --track-hue-2: #8a8876;
+  --track-hue-3: #6f6f6f;
+  --track-hue-4: #34478f;
+  --track-hue-5: #a5a392;
+
+  --font-display: "Times New Roman", Times, serif;
+  --font-body: "Times New Roman", Times, serif;
+  --font-label: "Times New Roman", Times, serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-field-bg: var(--field-bg);
+  --color-field-bg-mid: var(--field-bg-mid);
+  --color-field-bg-dark: var(--field-bg-dark);
+  --color-field-ink: var(--field-ink);
+  --color-field-ink-warm: var(--field-ink-warm);
+  --color-field-accent: var(--field-accent);
+  --color-field-accent-tan: var(--field-accent-tan);
+  --color-field-tan: var(--field-tan);
+  --color-field-mist: var(--field-mist);
+  --color-field-line: var(--field-line);
+  --color-field-walk: var(--field-walk);
+  --color-field-frame: var(--field-frame);
+  --color-field-blue: var(--field-blue);
+  --color-field-red: var(--field-red);
+}

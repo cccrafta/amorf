@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -11,14 +11,15 @@
 !.yarn/versions
 
 # testing
-/coverage
+coverage
 
 # next.js
-/.next/
-/out/
+.next/
+/apps/web/out/
 
 # production
 /build
+/apps/web/build/
 
 # misc
 .DS_Store
@@ -32,6 +33,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.development
+!.env.production
 
 # vercel
 .vercel
@@ -41,5 +44,35 @@ yarn-error.log*
 next-env.d.ts
 
 # large local media
-/lib/interview/
-/public/media/*.mp4
+/apps/web/lib/interview/
+/apps/web/public/media/*.mp4
+
+# cloudflare
+.wrangler/
+
+# entity data and media live in R2, never in git
+/apps/web/public/entities/
+/apps/web/public/media/
+/apps/web/lib/iranian Ice resevoirs/
+
+# entity working copies and originals (synced to R2, never in git)
+/apps/web/content/
+.sync-manifest.json
+
+# research media lives in R2 (see docs/conventions/research-log.md); only text is committed
+research/**/*.jpg
+research/**/*.jpeg
+research/**/*.png
+research/**/*.gif
+research/**/*.webp
+research/**/*.mp4
+research/**/*.mov
+research/**/*.wav
+research/**/*.mp3
+research/**/*.pdf
+
+# entity working copies in any app, not only apps/web
+**/content/entities/
+
+# per-machine Claude Code settings
+.claude/settings.local.json

@@ -1,26 +1,15 @@
 {
   "name": "amorf",
-  "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@12.4.2",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "next": "16.3.5",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.5",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "dev": "pnpm --filter @amorf/web run dev",
+    "build": "pnpm --filter @amorf/web run build",
+    "lint": "pnpm --filter @amorf/web run lint",
+    "preview": "pnpm --filter @amorf/web run preview",
+    "deploy": "pnpm --filter @amorf/web run deploy",
+    "entities:probe": "pnpm --filter @amorf/web run entities:probe",
+    "entities:check": "pnpm --filter @amorf/web run entities:check",
+    "entities:sync": "pnpm --filter @amorf/web run entities:sync"
   }
 }

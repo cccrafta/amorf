@@ -1,0 +1,6 @@
+{
+  "name": "amorf",
+  "account_id": "d9a270a1f4adcaec08c276e75c0e52ed",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./out", "not_found_handling": "404-page" }
+}

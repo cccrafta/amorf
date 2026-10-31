@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "amorf entity",
+  "description": "Metadata for one entity. Convention: docs/conventions/entities.md. Generated media fields come from `npm run entities:probe`.",
+  "type": "object",
+  "required": ["schema", "id", "title", "kind"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "description": "Kebab-case slug; equals the folder name; never changes once published." },
+    "title": { "type": "string", "minLength": 1 },
+    "kind": { "enum": ["building", "drawing", "photograph", "document", "film", "sound", "material", "fragment"] },
+    "year": { "type": "string", "description": "Free text: 1958, 1921–1940, 12th century, Safavid era." },
+    "place": { "type": "string" },
+    "creator": { "type": "string" },
+    "creatorRole": { "type": "string" },
+    "client": { "type": "string" },
+    "collaborators": { "type": "array", "items": { "type": "string" } },
+    "program": { "type": "string" },
+    "movement": { "type": "string" },
+    "materials": { "type": "array", "items": { "type": "string" } },
+    "area": { "type": "string" },
+    "medium": { "type": "string" },
+    "discipline": { "type": "string" },
+    "thumbnail": { "type": "string", "description": "File name from media[] shown on the card. Image or video. Default: first video, else first image." },
+    "description": { "type": "array", "items": { "type": "string" } },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "links": { "type": "array", "items": { "type": "object", "required": ["url"], "properties": { "label": { "type": "string" }, "url": { "type": "string", "format": "uri" } } } },
+    "related": { "type": "array", "items": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string" }, "reason": { "type": "string" } } } },
+    "media": { "type": "array", "items": { "$ref": "#/$defs/media" } },
+    "layout": { "$ref": "#/$defs/layout" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "layout": {
+      "type": "object",
+      "description": "Authored placement in the entity view on a 12-column grid of square modules. Omit for the default packing. Design: docs/design/entity-view.md.",
+      "properties": {
+        "version": { "const": 1 },
+        "board": { "type": "object", "properties": {
+          "cols": { "type": "integer", "minimum": 12, "maximum": 48, "default": 24 },
+          "rows": { "type": "integer", "minimum": 6 }
+        }, "additionalProperties": false },
+        "entry": { "type": "object", "description": "Top-left cell of the view shown on entry.", "properties": {
+          "col": { "type": "integer", "minimum": 1 }, "row": { "type": "integer", "minimum": 1 }
+        }, "additionalProperties": false },
+        "items": { "type": "array", "description": "Array order is reading order: the narrow stack order and the Tab order.", "items": {
+          "type": "object",
+          "required": ["ref"],
+          "properties": {
+            "ref": { "type": "string", "pattern": "^(title|meta|p:\\d+|media:.+)$", "description": "title, meta, p:<n> (description paragraph, 0-based) or media:<file>." },
+            "col": { "type": "integer", "minimum": 1 },
+            "row": { "type": "integer", "minimum": 1 },
+            "w": { "type": "integer", "minimum": 1, "maximum": 12 },
+            "h": { "type": "integer", "minimum": 1, "description": "Rows; crops media around focal. Omit to derive the height from the content." },
+            "z": { "type": "integer" },
+            "narrow": { "type": "object", "description": "Override below 760 px, on a 4-column grid.", "properties": {
+              "col": { "type": "integer", "minimum": 1, "maximum": 4 },
+              "row": { "type": "integer", "minimum": 1 },
+              "w": { "type": "integer", "minimum": 1, "maximum": 4 }
+            }, "additionalProperties": false }
+          },
+          "additionalProperties": false
+        } }
+      },
+      "additionalProperties": false
+    },
+    "media": {
+      "type": "object",
+      "required": ["kind"],
+      "oneOf": [{ "required": ["file"] }, { "required": ["embed"] }],
+      "properties": {
+        "file": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*\\.[a-z0-9]+$", "description": "File name in the entity folder. Immutable once published: replace by adding a new name." },
+        "embed": { "type": "object", "required": ["provider", "url"], "properties": { "provider": { "enum": ["vimeo", "youtube"] }, "url": { "type": "string", "format": "uri" } } },
+        "kind": { "enum": ["photograph", "detail", "material", "drawing", "video", "audio", "document"] },
+        "alt": { "type": "string", "description": "For screen readers. Leave empty when the caption already says it." },
+        "caption": { "type": "string" },
+        "credit": { "type": "string" },
+        "rights": { "type": "string", "description": "A Creative Commons or rightsstatements.org URI." },
+        "source": { "type": "string", "description": "Where the file was found." },
+        "original": { "type": "string", "description": "Path of the source file inside the entity folder, originals/...." },
+        "poster": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*\\.[a-z0-9]+$" },
+        "focal": { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 }, "minItems": 2, "maxItems": 2 },
+        "at": { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 }, "minItems": 2, "maxItems": 2, "deprecated": true, "description": "Deprecated: use layout.items. Read only when layout.items does not list this file." },
+        "mime": { "type": "string", "description": "Generated." },
+        "bytes": { "type": "integer", "description": "Generated." },
+        "width": { "type": "integer", "description": "Generated." },
+        "height": { "type": "integer", "description": "Generated." },
+        "duration": { "type": "number", "description": "Generated, seconds." }
+      },
+      "additionalProperties": false
+    }
+  }
+}

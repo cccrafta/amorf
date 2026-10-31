@@ -1,0 +1,178 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+html:has(body[data-field]),
+body[data-field] {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--field-bg-dark);
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+body[data-field] a {
+  color: var(--field-accent);
+  text-decoration: none;
+}
+body[data-field] a:hover {
+  color: var(--field-ink);
+}
+body[data-field] input {
+  font: inherit;
+  color: inherit;
+}
+body[data-field] input::placeholder {
+  color: color-mix(in srgb, var(--field-mist) 22%, transparent);
+}
+body[data-field] ::selection {
+  background: color-mix(in srgb, var(--field-accent) 32%, transparent);
+}
+body[data-field] :focus-visible {
+  outline: 1px solid var(--field-accent);
+  outline-offset: 3px;
+}
+body[data-field] canvas {
+  touch-action: none;
+}
+
+@keyframes am-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes am-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes am-drift {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(4px, -5px); }
+  100% { transform: translate(0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-field] * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* recurring label recipe: small plain serif caps in label blue — used across HUD/panels */
+.field-label {
+  font-family: var(--font-label);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--field-label);
+}
+.field-label-dim {
+  color: color-mix(in srgb, var(--field-label) 60%, transparent);
+}
+.field-label-accent {
+  color: var(--field-body);
+}
+
+/* recurring body recipe: plain upright serif in running-text red */
+.field-body {
+  font-family: var(--font-body);
+  font-style: normal;
+  font-weight: 400;
+  color: var(--field-body);
+  text-wrap: pretty;
+}
+
+/* recurring display recipe: plain serif titles in title blue */
+.field-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--field-title);
+}
+
+/* thumbnail frame: flat grey mat around an image, drawn outside the box so overlays stay aligned */
+.field-frame {
+  box-shadow: 0 0 0 10px var(--field-frame);
+}
+
+/* toggle square: flat label-blue box; checked state draws a red cross over it */
+.field-check {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  background: var(--field-label);
+}
+.field-check[data-on="1"]::before,
+.field-check[data-on="1"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 140%;
+  height: 1.5px;
+  background: var(--field-red);
+}
+.field-check[data-on="1"]::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.field-check[data-on="1"]::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+/* hover/focus affordances the source expressed as inline style-hover/style-focus */
+.field-hover-accent:hover,
+.field-hover-accent:focus-visible {
+  color: var(--field-ink) !important;
+}
+.field-hover-mist:hover,
+.field-hover-mist:focus-visible {
+  color: var(--field-accent) !important;
+}
+.field-hover-bg:hover,
+.field-hover-bg:focus-visible {
+  background: color-mix(in srgb, var(--field-accent) 8%, transparent) !important;
+}
+.field-hover-opacity:hover,
+.field-hover-opacity:focus-visible {
+  opacity: 1 !important;
+}
+.field-hover-padleft:hover,
+.field-hover-padleft:focus-visible {
+  padding-left: 10px !important;
+}
+.field-hover-padleft:hover {
+  background: color-mix(in srgb, var(--field-ink) 3%, transparent) !important;
+}
+.field-hover-padleft:focus-visible {
+  background: color-mix(in srgb, var(--field-accent) 8%, transparent) !important;
+}
+.field-hover-split:hover {
+  color: var(--field-ink) !important;
+}
+.field-hover-split:focus-visible {
+  color: var(--field-accent) !important;
+}
+.field-hover-walk:hover {
+  color: var(--field-walk) !important;
+}
+.field-focus-border:focus-visible {
+  border-bottom: 1px solid color-mix(in srgb, var(--field-accent) 90%, transparent) !important;
+}
+.field-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--field-ink);
+}
+.field-input:focus-visible {
+  outline: none;
+}
