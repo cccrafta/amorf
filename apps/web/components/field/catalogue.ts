@@ -1,11 +1,11 @@
 // Catalogue (the index): view model for the list of walks.
 import type Field from "./Field";
-import type { FieldNode, State, Vals } from "./types";
-import { key, rand } from "./util";
+import type { FieldNode, State } from "./types";
+import { key, rand, stop } from "./util";
 import { plate } from "./plate";
 import { yearOf } from "./chronology";
 
-export function catalogueVals(f: Field, st: State, out: Vals): void {
+export function catalogueVals(f: Field, st: State) {
   // a walk's name only ever stands for what is on it, so the reading order
   // laid across a table and the order somebody walked read the same way
   const asBook = (name: string, steps: string[], color: string, mine: boolean) => {
@@ -35,8 +35,8 @@ export function catalogueVals(f: Field, st: State, out: Vals): void {
       nodesPath += "M" + (x - rr).toFixed(1) + "," + y.toFixed(1) + "L" + (x + rr).toFixed(1) + "," + y.toFixed(1) +
                    "M" + x.toFixed(1) + "," + (y - rr).toFixed(1) + "L" + x.toFixed(1) + "," + (y + rr).toFixed(1);
     });
-    const keep = (ev?: any) => {
-      if (ev && ev.stopPropagation) ev.stopPropagation();
+    const keep = (ev?: { stopPropagation(): void }) => {
+      stop(ev);
       const kp = Object.assign({}, f.state.kept || {});
       if (kp[name]) delete kp[name]; else kp[name] = true;
       f.setState({ kept: kp }, () => f.recomputeWear());
@@ -65,12 +65,13 @@ export function catalogueVals(f: Field, st: State, out: Vals): void {
       keptColor: isKept ? "var(--field-accent)" : "color-mix(in srgb, var(--field-mist) 55%, transparent)",
       keep, keepKey: key(() => keep()),
       flatLabel: tableSet ? "open it flat" : "",
-      flat: tableSet ? f.openFlat(src!) : null,
-      flatKey: tableSet ? key(() => f.openFlat(src!)()) : null
+      flat: tableSet ? f.openFlat(src!) : undefined,
+      flatKey: tableSet ? key(() => f.openFlat(src!)()) : undefined
     };
   };
-  out.journeys = st.seeded.map(w => asBook(w.name, w.steps, f.walkColor(w.name), false));
-  if (st.trace.length) out.journeys = [asBook("Your walk, still open", st.trace.map(t => t.id), "var(--field-walk)", true)].concat(out.journeys);
+  const seeded = st.seeded.map(w => asBook(w.name, w.steps, f.walkColor(w.name), false));
+  const journeys = st.trace.length ? [asBook("Your walk, still open", st.trace.map(t => t.id), "var(--field-walk)", true)].concat(seeded) : seeded;
   const jw = st.filter ? st.seeded.find(w => w.name === st.filter) : null;
-  out.inJourney = jw ? { name: jw.name, color: f.walkColor(jw.name), count: jw.steps.length + " objects" } : null;
+  const inJourney = jw ? { name: jw.name, color: f.walkColor(jw.name), count: jw.steps.length + " objects" } : null;
+  return { journeys, inJourney };
 }

@@ -1,6 +1,6 @@
 // Plan view: label placement and the view model for the field seen from above.
 import type Field from "./Field";
-import type { FieldNode, State, Vals } from "./types";
+import type { FieldNode, State } from "./types";
 import { key } from "./util";
 
 // Plan labels are placed only after the marks are already on the page, worn
@@ -11,8 +11,9 @@ export function placePlanLabels(f: Field) {
   if (!box || !f.state.plan) return;
   const bb = box.getBoundingClientRect();
   const items = Array.from(box.children)
-    .filter((n: any) => n.dataset && n.dataset.pid)
-    .map((n: any) => ({ n, id: n.dataset.pid as string, mark: n.children[0] as HTMLElement, lab: n.children[1] as HTMLElement, wr: f.wearOf(n.dataset.pid) }))
+    .flatMap(n => n instanceof HTMLElement && n.dataset.pid
+      ? [{ n, id: n.dataset.pid, mark: n.children[0] as HTMLElement, lab: n.children[1] as HTMLElement, wr: f.wearOf(n.dataset.pid) }]
+      : [])
     .sort((a, b) => (b.id === f.state.planHover ? 9 : b.wr) - (a.id === f.state.planHover ? 9 : a.wr));
   if (!items.length) return;
   const hov = f.state.planHover;
@@ -40,15 +41,12 @@ export function placePlanLabels(f: Field) {
   });
 }
 
-export function planVals(f: Field, st: State, out: Vals): void {
+export function planVals(f: Field, st: State) {
   const pc = (o: FieldNode) => (o.hx / f.TILE * 100).toFixed(2) + "," + (o.hz / f.TILE * 100).toFixed(2);
   const routeOf = (ids: string[]) => ids.map(id => f.byId(id)).filter(Boolean).map((o, i) => (i ? "L" : "M") + pc(o)).join("");
-  out.plan = st.plan;
-  out.onPlan = () => { f.collapse(); f.setState({ plan: !f.state.plan, catalogue: false, tableOpen: false, compose: null, view: null }); };
-  out.onPlanKey = key(() => out.onPlan());
-  out.onClosePlan = () => f.setState({ plan: false });
-  out.onClosePlanKey = key(out.onClosePlan);
-  out.planNodes = f.OBJECTS.map(o => {
+  const onPlan = () => { f.collapse(); f.setState({ plan: !f.state.plan, catalogue: false, tableOpen: false, compose: null, view: null }); };
+  const onClosePlan = () => f.setState({ plan: false });
+  const planNodes = f.OBJECTS.map(o => {
     const wr = f.wearOf(o.id);
     const go = () => { f.setState({ plan: false }); f.flyTo(o.id, "↓", false, true); };
     const on = st.planHover === o.id;
@@ -72,18 +70,24 @@ export function planVals(f: Field, st: State, out: Vals): void {
       go, key: key(go)
     };
   });
-  out.planEdges = (f.props.planEdges ?? true)
-    ? f.ASSOC.map(a => {
+  const planEdges = (f.props.planEdges ?? true)
+    ? f.ASSOC.flatMap(a => {
         const A = f.byId(a[0]), B = f.byId(a[1]);
-        return A && B ? { d: "M" + pc(A) + "L" + pc(B) } : null;
-      }).filter(Boolean)
+        return A && B ? [{ d: "M" + pc(A) + "L" + pc(B) }] : [];
+      })
     : [];
-  out.planWalks = st.seeded.map(w => {
+  const planWalks = st.seeded.map(w => {
     const objs = w.steps.map(id => f.byId(id)).filter(Boolean);
     const avg = objs.length ? objs.reduce((s, o) => s + f.wearOf(o.id), 0) / objs.length : 0;
     return { d: routeOf(w.steps), color: f.walkColor(w.name), w: (0.7 + avg * 2.6 + (st.kept[w.name] ? 1.2 : 0)).toFixed(2), op: (st.kept[w.name] ? 0.85 : 0.38).toFixed(2) };
   });
-  out.planMine = st.trace.length > 1 ? routeOf(st.trace.map(t => t.id)) : "";
+  const planMine = st.trace.length > 1 ? routeOf(st.trace.map(t => t.id)) : "";
   const keptCount = Object.keys(st.kept).filter(k => st.kept[k]).length;
-  out.planTally = f.OBJECTS.length + " entities · " + st.seeded.length + (st.seeded.length === 1 ? " route" : " routes") + (keptCount ? " · " + keptCount + " kept" : "");
+  const planTally = f.OBJECTS.length + " entities · " + st.seeded.length + (st.seeded.length === 1 ? " route" : " routes") + (keptCount ? " · " + keptCount + " kept" : "");
+  return {
+    plan: st.plan,
+    onPlan, onPlanKey: key(onPlan),
+    onClosePlan, onClosePlanKey: key(onClosePlan),
+    planNodes, planEdges, planWalks, planMine, planTally
+  };
 }

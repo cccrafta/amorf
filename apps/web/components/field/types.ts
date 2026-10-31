@@ -80,12 +80,31 @@ export type State = {
   jump?: { span: string; years: string; paces: string } | null;
 };
 
-// Loosely typed on purpose: the view model is a JS-shaped bag of ~80 keys.
-export type Vals = Record<string, any>;
+// One card in the world, built once per entity and refreshed in place by renderVals().
+export type RenderNode = {
+  id: string;
+  title: string;
+  kind: string;
+  year: string;
+  plate: PlateSeg[];
+  live: boolean;
+  thumb: string | null;
+  open: () => void;
+  marks: { marks: NoteMark[]; ink: string; op: string }[];
+  hasMarks: boolean;
+  cloud: NoteMark[];
+  traceLabel: string;
+  openTrace: (ev?: { stopPropagation(): void }) => void;
+};
 
-// renderVals() returns Record<string, any> by design (it's a JS-shaped view
-// model with ~80 keys) — V just spells out that render()'s `v` also carries props.
-export type V = Props & Vals;
+// Inferred from renderVals so the UI cannot read a key nobody writes.
+export type Vals = ReturnType<Field["renderVals"]>;
+
+// renderVals() is spread over props last, so its planEdges (the route paths) replaces the planEdges prop (the on/off gate).
+export type V = Omit<Props, keyof Vals> & Vals;
+
+// A V key the renderer only draws while it is set.
+export type Shown<K extends keyof V> = NonNullable<V[K]>;
 
 // One loop owned by the window: hosts throttle rAF and intervals unevenly, and a
 // remount can orphan a timer, so a single instance drives whichever Field is live.
@@ -96,5 +115,11 @@ declare global {
     __amorfRaf?: number;
     __amorfWatch?: ReturnType<typeof setInterval>;
     __amorfRafSeen?: number;
+  }
+  // Per-element bindings that survive a hot reload, so a fresh Field can tell whether the DOM it finds is already wired to it.
+  interface HTMLElement {
+    __amorfOwner?: Field;
+    __amorfPaper?: Field;
+    __amorfAbort?: AbortController;
   }
 }

@@ -15,9 +15,9 @@ export function forward(f: Field, dist: number) {
 // One binding per element: a hot reload keeps the DOM but makes a new logic
 // instance, and re-binding would multiply every scroll and drag.
 export function bindStage(f: Field, el: HTMLElement) {
-  if ((el as any).__amorfAbort) (el as any).__amorfAbort.abort();
+  if (el.__amorfAbort) el.__amorfAbort.abort();
   const ac = new AbortController();
-  (el as any).__amorfAbort = ac;
+  el.__amorfAbort = ac;
   const sig = { signal: ac.signal };
 
   el.addEventListener("wheel", (e: WheelEvent) => {
@@ -40,7 +40,7 @@ export function bindStage(f: Field, el: HTMLElement) {
       if (e.buttons === 0 && e.pointerType === "mouse") { f.drag = null; f.tick(); return; }
       if (!f.drag.captured && f.drag.moved > 6) {
         f.drag.captured = true;
-        try { if (el.setPointerCapture) el.setPointerCapture(e.pointerId); } catch (err) {}
+        try { if (el.setPointerCapture) el.setPointerCapture(e.pointerId); } catch {}
       }
       const mdx = e.clientX - f.drag.x, mdy = e.clientY - f.drag.y;
       f.cam.tyaw += mdx * -0.14;
@@ -69,10 +69,8 @@ export function bindStage(f: Field, el: HTMLElement) {
   }, sig);
   el.addEventListener("pointerleave", () => { f.drag = null; f.pointer = null; }, sig);
 
-  let touch: any = null;
   el.addEventListener("touchstart", () => { f.used(); }, { passive: true, signal: ac.signal });
   el.addEventListener("touchmove", (e: TouchEvent) => { if (e.cancelable) e.preventDefault(); }, { passive: false, signal: ac.signal });
-  el.addEventListener("touchend", () => { touch = null; }, sig);
 }
 
 export function keydown(f: Field, e: KeyboardEvent) {

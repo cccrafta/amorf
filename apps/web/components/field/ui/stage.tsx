@@ -1,10 +1,10 @@
 // Stage layer: the 3D world of cards and a single card.
-import type { V, PlateSeg, NoteMark } from "../types";
+import type { V, PlateSeg, NoteMark, RenderNode } from "../types";
 
 // Card DOM order is load-bearing: frame() reads el.firstElementChild as the plate svg
 // and el.children[2] as the <h3> title via querySelector("[data-obj]") — never reorder
 // the first three children (plate svg, kind/year row, title).
-export function renderNode(n: any, v: V) {
+export function renderNode(n: RenderNode, v: V) {
   return (
     <div
       key={n.id}
@@ -35,7 +35,7 @@ export function renderNode(n: any, v: V) {
       {n.thumb && !n.live && <img data-part="thumb" src={n.thumb} alt="" loading="lazy" decoding="async" style={{ position: "absolute", left: 0, top: 0, width: "100%", height: 226, objectFit: "cover", pointerEvents: "none", filter: "grayscale(1) brightness(0.85)" }} />}
       {n.live && <div data-part="media" style={{ position: "absolute", left: 0, top: 0, width: "100%", height: 226, pointerEvents: "none", overflow: "hidden" }} />}
       <div style={{ position: "absolute", left: 0, top: 0, width: "100%", height: 226, pointerEvents: "none" }}>
-        {n.marks.map((k: any, ki: number) => (
+        {n.marks.map((k, ki) => (
           <div key={ki} data-part="mark" data-op={k.op} style={{ position: "absolute", inset: 0, opacity: 0 }}>
             <svg viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true" style={{ display: "block", width: "100%", height: "100%" }}>
               {k.marks.map((s: NoteMark, si: number) => (
@@ -69,7 +69,7 @@ export function renderStage(v: V) {
       style={{ position: "absolute", inset: 0, perspective: 900, perspectiveOrigin: "50% 46%", cursor: "crosshair", touchAction: "none", background: "radial-gradient(120% 90% at 50% 45%, var(--field-bg-mid) 0%, var(--field-bg-dark) 70%)" }}
     >
       <div data-role="world" style={{ position: "absolute", inset: 0, transformStyle: "preserve-3d", willChange: "transform" }}>
-        {v.nodes.map((n: any) => renderNode(n, v))}
+        {v.nodes.map(n => renderNode(n, v))}
       </div>
       <svg data-role="tracks" aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 2, overflow: "visible" }} />
     </div>

@@ -1,4 +1,5 @@
 // Interior state: the per-entity record Field keeps, its phase and tuning constants.
+import type { PlateSeg } from "../types";
 
 // Pull (0..1) past an edge at which letting go moves to that edge's neighbour.
 export const COMMIT = 0.55;
@@ -12,7 +13,17 @@ export type Rect = { x: number; y: number; w: number; h: number };
 export type Dir = "left" | "right" | "up" | "down";
 export type Tab = "facts" | "traces" | "related";
 // A board piece before placement: ref is its layout address, cols its default span, tall its pixel height at a pixel width.
-export type Item = { key: string; ref: string; kind: string; cols: number; tall: (w: number) => number; data?: unknown; at?: [number, number] };
+type ItemBase = { key: string; ref: string; cols: number; tall: (w: number) => number; at?: [number, number] };
+export type MetaField = { k: string; v: string };
+// data is what the view draws for that kind of piece.
+export type Item = ItemBase & (
+  | { kind: "title"; data: { stamp: string; title: string; fs: number } }
+  | { kind: "meta"; data: { fields: MetaField[] } }
+  | { kind: "plate"; data: { plate: PlateSeg[]; stamp: string } }
+  | { kind: "media"; data: { kind: string; cap: string; imgCss: string | null; ar: number; focal: string } }
+  | { kind: "video"; data: { kind: string; cap: string } }
+  | { kind: "para"; data: { t: string; fs: number } }
+);
 // pos is each piece's top-left box in board pixels; crop is set when an authored h fixes the height.
 export type Box = { x: number; y: number; w: number; h: number; col: number; row: number; cols: number; rows: number; z?: number; crop: boolean };
 export type Layout = { w: number; h: number; focus: { x: number; y: number }; pos: Record<string, Box> };

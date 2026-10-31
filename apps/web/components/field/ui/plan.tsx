@@ -17,19 +17,17 @@ export function renderPlan(v: V) {
       <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "clamp(14px, 3vh, 34px)" }}>
         <div data-role="planbox" style={{ position: "relative", height: "100%", aspectRatio: "1 / 1", maxWidth: "100%", border: "1px solid color-mix(in srgb, var(--field-line) 16%, transparent)" }}>
           <svg viewBox="0 0 100 100" aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" }}>
-            {/* out.planEdges (an array) shadows props.planEdges (the boolean gate) at
-                runtime since renderVals() spreads last — cast past V's static boolean type. */}
-            {(v.planEdges as any as { d: string }[]).map((e: any, ei: number) => (
+            {v.planEdges.map((e, ei) => (
               <path key={ei} d={e.d} fill="none" stroke="var(--field-line)" strokeWidth={1} vectorEffect="non-scaling-stroke" opacity={0.12} />
             ))}
-            {v.planWalks.map((w: any, wi: number) => (
+            {v.planWalks.map((w, wi) => (
               <path key={wi} d={w.d} fill="none" stroke={w.color} strokeWidth={w.w} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" opacity={w.op} />
             ))}
             <path d={v.planMine} fill="none" stroke="var(--field-walk)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" opacity={0.9} />
           </svg>
           {/* placePlanLabels() reads n.children[0] as the marker dot and n.children[1] as
               the label span by position — keep exactly these two children, in this order. */}
-          {v.planNodes.map((p: any) => (
+          {v.planNodes.map(p => (
             <div key={p.id} data-pid={p.id} data-side={p.side} role="button" tabIndex={0} onClick={p.go} onKeyDown={p.key} onMouseEnter={p.enter} onMouseLeave={p.leave} onFocus={p.enter} onBlur={p.leave} style={{ position: "absolute", left: p.x, top: p.y, width: 0, height: 0, zIndex: p.z, cursor: "pointer", outline: "none", opacity: p.op, transition: "opacity 300ms ease" }}>
               <span style={{ position: "absolute", left: 0, top: 0, transform: "translate(-50%, -50%)", width: p.size, height: p.size, border: `1px solid ${p.ink}`, background: "color-mix(in srgb, var(--field-ink) 7%, transparent)" }} />
               <span style={{ position: "absolute", top: 0, left: p.lox, transform: p.ltf, whiteSpace: "nowrap", fontFamily: "var(--font-label)", fontSize: 8.5, letterSpacing: "0.1em", color: p.labelInk, opacity: p.labelOp, transition: "opacity 260ms ease" }}>{p.title}</span>

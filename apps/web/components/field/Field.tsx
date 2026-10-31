@@ -13,8 +13,8 @@ import {
 import "@/lib/media/video";
 import { liveMedia } from "@/lib/media/registry";
 import * as pool from "@/lib/media/pool";
-import type { FieldNode, FieldNote, NoteMark, Props, State, TableMetrics, V, Vals, Walk } from "./types";
-import { rand, smooth, wrap, key } from "./util";
+import type { FieldNode, FieldNote, NoteMark, Props, RenderNode, State, TableMetrics, V, Walk } from "./types";
+import { rand, smooth, wrap, key, stop } from "./util";
 import { plate, scribble } from "./plate";
 import { yearLabel, gap } from "./chronology";
 import * as wear from "./wear";
@@ -145,7 +145,7 @@ export default class Field extends React.Component<Props, State> {
   keepClear: { l: number; r: number; t: number; b: number; ramp: number }[] = [];
   noteTimer: ReturnType<typeof setTimeout> | null = null;
   jumpTimer: ReturnType<typeof setTimeout> | null = null;
-  nodes: any[] | null = null;
+  nodes: RenderNode[] | null = null;
   onGesture?: () => void;
   mediaSlot: HTMLElement | null = null;
   // 0..1 world-distance closeness per object, written by frame() regardless of whether the card is drawn.
@@ -281,14 +281,14 @@ export default class Field extends React.Component<Props, State> {
     if (this.input && this.wantFocus) { this.wantFocus = false; this.input.focus(); }
 
     const inner = q("interior");
-    if (inner && (inner as any).__amorfOwner !== this) { (inner as any).__amorfOwner = this; interior.bindInterior(this, inner); }
+    if (inner && inner.__amorfOwner !== this) { inner.__amorfOwner = this; interior.bindInterior(this, inner); }
 
     this.tracks = this.tracks || (q("tracks") as unknown as SVGSVGElement | null);
     const paper = q("paper") as HTMLCanvasElement | null;
-    if (paper && (paper as any).__amorfPaper !== this) { (paper as any).__amorfPaper = this; this.bindPaper(paper); }
+    if (paper && paper.__amorfPaper !== this) { paper.__amorfPaper = this; this.bindPaper(paper); }
     if (!paper) { this.paper = null; this.paperCtx = null; this.paperFit = null; }
     const stage = q("stage");
-    if (stage && (stage !== this.stage || (stage as any).__amorfOwner !== this)) { this.stage = stage; (stage as any).__amorfOwner = this; this.bindStage(stage); }
+    if (stage && (stage !== this.stage || stage.__amorfOwner !== this)) { this.stage = stage; stage.__amorfOwner = this; this.bindStage(stage); }
 
     let n = 0;
     document.querySelectorAll<HTMLElement>("[data-obj]").forEach(el => {
@@ -573,26 +573,32 @@ export default class Field extends React.Component<Props, State> {
   commitNote = () => notes.commitNote(this);
   nextInWalk(n: FieldNote | null | undefined): string | null { return notes.nextInWalk(this, n); }
 
-  renderVals(): Vals {
+  renderVals() {
     const st = this.state;
-    if (!this.nodes) {
-      this.nodes = this.OBJECTS.map(o => ({
-        id: o.id, title: o.t, kind: o.k, year: o.y || "—", plate: plate(o), live: !o.thumb && !!liveMedia(o), thumb: o.thumb ? mediaUrl(o.thumb) : null,
-        open: () => this.open(o.id, "◉")
-      }));
-    }
+    const nodes: RenderNode[] = this.nodes ?? (this.nodes = this.OBJECTS.map(o => ({
+      id: o.id, title: o.t, kind: o.k, year: o.y || "—", plate: plate(o), live: !o.thumb && !!liveMedia(o), thumb: o.thumb ? mediaUrl(o.thumb) : null,
+      open: () => this.open(o.id, "◉"),
+      marks: [], hasMarks: false, cloud: [], traceLabel: "", openTrace: () => {}
+    })));
     const fieldOn = this.props.fieldNotes ?? true;
-    this.nodes.forEach(nd => {
+    nodes.forEach(nd => {
       const drawn = !fieldOn ? [] : this.notesFor(nd.id).filter(n => n.marks && n.marks.length).slice(0, 4);
       nd.marks = drawn.map(n => ({ marks: n.marks, ink: n.ink || this.inkColor(), op: n.mine ? "0.95" : "0.65" }));
       nd.hasMarks = drawn.length > 0;
       nd.cloud = fieldOn ? this.cloudFor(nd.id, this.wearOf(nd.id)) : [];
       nd.traceLabel = drawn.length ? (drawn.length === 1 ? "one trace · " + (drawn[0].mine ? "you" : drawn[0].by) : drawn.length + " traces") : "";
-      nd.openTrace = (ev?: any) => { if (ev && ev.stopPropagation) ev.stopPropagation(); if (drawn.length) this.setState({ view: drawn[0].id }); };
+      nd.openTrace = (ev) => { stop(ev); if (drawn.length) this.setState({ view: drawn[0].id }); };
     });
 
-    const out: Vals = {
-      nodes: this.nodes,
+    const onCatalogue = () => { interior.dismiss(this); this.setState({ catalogue: true, open: null, compose: null, view: null }); };
+    const onCloseCatalogue = () => this.setState({ catalogue: false });
+    const onLeaveJourney = () => { this.filterSet = null; this.setState({ filter: null, joined: null }); };
+    const onTracks = () => this.setState({ tracksOn: !this.state.tracksOn });
+    const onAskOpen = () => { this.wantFocus = true; this.setState({ askOpen: true }); };
+    const onLeaveTrace = () => { if (st.trace.length) { interior.dismiss(this); this.setState({ naming: true, nameValue: "", open: null }); } };
+    const onCancelName = () => this.setState({ naming: false });
+    const base = {
+      nodes,
       focus: st.focus, query: st.query,
       askOpen: st.askOpen, askShut: !st.askOpen,
       naming: st.naming, nameValue: st.nameValue,
@@ -605,33 +611,31 @@ export default class Field extends React.Component<Props, State> {
       noteCount: String(this.NOTES.filter(n => n.mine).length).padStart(2, "0"),
       catalogue: st.catalogue,
       journeyTally: String(st.seeded.length + (st.trace.length ? 1 : 0)).padStart(2, "0") + " in the collection",
-      onCatalogue: () => { interior.dismiss(this); this.setState({ catalogue: true, open: null, compose: null, view: null }); },
-      onCloseCatalogue: () => this.setState({ catalogue: false }),
-      onLeaveJourney: () => { this.filterSet = null; this.setState({ filter: null, joined: null }); },
+      onCatalogue, onCloseCatalogue, onLeaveJourney,
       tracksLabel: st.tracksOn ? "TRACKS ON" : "TRACKS OFF",
       tracksOn: st.tracksOn,
-      onTracks: () => this.setState({ tracksOn: !this.state.tracksOn }),
-      onAskOpen: () => { this.wantFocus = true; this.setState({ askOpen: true }); },
+      onTracks, onAskOpen,
       onAskBlur: () => { if (!this.state.query.trim()) this.setState({ askOpen: false }); },
       onQueryChange: (e: React.ChangeEvent<HTMLInputElement>) => this.setState({ query: e.target.value }),
       onSubmit: (e: React.FormEvent) => { e.preventDefault(); this.runSearch(this.state.query); },
-      onLeaveTrace: () => { if (st.trace.length) { interior.dismiss(this); this.setState({ naming: true, nameValue: "", open: null }); } },
+      onLeaveTrace,
       onNameChange: (e: React.ChangeEvent<HTMLInputElement>) => this.setState({ nameValue: e.target.value }),
       onCommitName: this.commitName,
-      onCancelName: () => this.setState({ naming: false })
+      onCancelName,
+      onTracksKey: key(onTracks),
+      onCatalogueKey: key(onCatalogue),
+      onCloseCatalogueKey: key(onCloseCatalogue),
+      onLeaveJourneyKey: key(onLeaveJourney),
+      onAskOpenKey: key(onAskOpen),
+      onLeaveTraceKey: key(onLeaveTrace),
+      onCommitNameKey: key(() => this.commitName()),
+      onCancelNameKey: key(onCancelName)
     };
-    out.onTracksKey = key(out.onTracks);
-    out.onCatalogueKey = key(out.onCatalogue);
-    out.onCloseCatalogueKey = key(out.onCloseCatalogue);
-    out.onLeaveJourneyKey = key(out.onLeaveJourney);
-    out.onAskOpenKey = key(out.onAskOpen);
-    out.onLeaveTraceKey = key(out.onLeaveTrace);
-    out.onCommitNameKey = key(() => this.commitName());
-    out.onCancelNameKey = key(out.onCancelName);
 
-    catalogueVals(this, st, out);
+    // Slices are evaluated in this order on purpose: walkColor() assigns hues by first call.
+    const catalogueV = catalogueVals(this, st);
 
-    out.trace = st.trace.map((s, i) => {
+    const trace = st.trace.map((s, i) => {
       const obj = this.byId(s.id);
       const go = () => { this.setState({ cursor: i }); this.flyTo(s.id, "↺", false, true); };
       let label = obj.t.split(",")[0].replace(/^(a|the) /i, "");
@@ -649,32 +653,29 @@ export default class Field extends React.Component<Props, State> {
       if (g !== null) { crossedYears += g; dated++; } else uncounted++;
     }
     const steps = st.trace.length - 1;
-    out.crossed = st.trace.length < 2 ? "one position held"
+    let crossed = st.trace.length < 2 ? "one position held"
       : (dated ? crossedYears.toLocaleString() + " years crossed" : "no datable distance")
         + " in " + steps + (steps === 1 ? " step" : " steps")
         + (uncounted ? ", " + uncounted + " uncounted" : "");
     const mineCount = this.NOTES.filter(n => n.mine).length;
-    if (mineCount) out.crossed = out.crossed + " · " + mineCount + (mineCount === 1 ? " trace left behind" : " traces left behind");
+    if (mineCount) crossed = crossed + " · " + mineCount + (mineCount === 1 ? " trace left behind" : " traces left behind");
 
-    notesVals(this, st, out);
-
-    composeVals(this, st, out);
-
-    viewVals(this, st, out);
-
-    interiorVals(this, st, out);
+    const notesV = notesVals(this, st);
+    const composeV = composeVals(this, st);
+    const viewV = viewVals(this, st);
+    const interiorV = interiorVals(this, st, notesV.notesHere);
 
     const keptFirst = st.seeded.slice().sort((a, b) => ((st.kept[b.name] ? 1 : 0) - (st.kept[a.name] ? 1 : 0)));
-    out.seeded = keptFirst.slice(0, 4).map(t => {
+    const seeded = keptFirst.slice(0, 4).map(t => {
       const go = () => { this.setState({ joined: t.name }); this.flyTo(t.steps[0], "↓", false, true); };
       return { name: t.name, color: this.walkColor(t.name), swatch: st.tracksOn ? "0.85" : "0.25", mark: st.kept[t.name] ? "kept" : t.table ? "set" : "", join: go, key: key(go) };
     });
 
-    planVals(this, st, out);
+    const planV = planVals(this, st);
+    const tableV = tableVals(this, st);
 
-    tableVals(this, st, out);
-
-    return out;
+    // Spread order is the override order: a later slice wins a shared key.
+    return { ...base, ...catalogueV, trace, crossed, ...notesV, ...composeV, ...viewV, ...interiorV, seeded, ...planV, ...tableV };
   }
 
   render() {
@@ -687,16 +688,16 @@ export default class Field extends React.Component<Props, State> {
         {renderStage(v)}
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10, background: "radial-gradient(140% 110% at 50% 50%, transparent 44%, color-mix(in srgb, var(--field-bg-dark) 84%, transparent) 100%)" }} />
         {renderHud(v)}
-        {v.jump && renderJump(v)}
-        {v.focus && renderFocusbar(v)}
+        {v.jump && renderJump(v, v.jump)}
+        {v.focus && renderFocusbar(v, v.focus)}
         {v.hasTrace && renderTraceRail(v)}
-        {v.inJourney && renderJourneybar(v)}
+        {v.inJourney && renderJourneybar(v, v.inJourney)}
         {renderHint()}
         {v.others && renderOthers(v)}
-        {v.interior && renderInterior(v)}
+        {v.interior && renderInterior(v, v.interior)}
         {v.catalogue && renderCatalogue(v)}
-        {v.view && renderView(v)}
-        {v.compose && renderCompose(v)}
+        {v.view && renderView(v, v.view)}
+        {v.compose && renderCompose(v, v.compose)}
         {v.plan && renderPlan(v)}
         {v.table && renderTable(v)}
         {v.naming && renderNaming(v)}

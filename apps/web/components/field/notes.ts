@@ -1,8 +1,8 @@
 // Traces and notes: the tracing-paper canvas, composing a note, and the notes view models.
 import type React from "react";
 import type Field from "./Field";
-import type { FieldNote, State, Vals } from "./types";
-import { key } from "./util";
+import type { FieldNote, NoteMark, PlateSeg, State } from "./types";
+import { key, type KeyHandler } from "./util";
 import { plate } from "./plate";
 
 export function notesFor(f: Field, id: string) { return f.NOTES.filter(n => n.obj === id); }
@@ -25,7 +25,7 @@ export function bindPaper(f: Field, cv: HTMLCanvasElement) {
   fit(); requestAnimationFrame(fit);
   const at = (e: PointerEvent): [number, number] => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
   cv.addEventListener("pointerdown", (e: PointerEvent) => {
-    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+    try { cv.setPointerCapture(e.pointerId); } catch {}
     f.drawing = { w: f.paperW, pts: [at(e)] };
     f.paperStrokes.push(f.drawing);
     f.paintPaper();
@@ -65,7 +65,7 @@ export function onUpload(f: Field, e: React.ChangeEvent<HTMLInputElement>) {
     const c = document.createElement("canvas"); c.width = W; c.height = H;
     const x = c.getContext("2d")!; x.drawImage(img, 0, 0, W, H);
     let d;
-    try { d = x.getImageData(0, 0, W, H); } catch (err) { return; }
+    try { d = x.getImageData(0, 0, W, H); } catch { return; }
     const px = d.data, ink = f.inkColor();
     const cr = parseInt(ink.slice(1, 3), 16), cg = parseInt(ink.slice(3, 5), 16), cb = parseInt(ink.slice(5, 7), 16);
     for (let i = 0; i < px.length; i += 4) {
@@ -107,9 +107,9 @@ export function nextInWalk(f: Field, n: FieldNote | null | undefined): string | 
   return i > -1 && i < w.steps.length - 1 ? w.steps[i + 1] : null;
 }
 
-export function notesVals(f: Field, st: State, out: Vals): void {
+export function notesVals(f: Field, st: State) {
   const here = st.open ? f.notesFor(st.open) : [];
-  out.notesHere = here.map(n => {
+  const notesHere = here.map(n => {
     const go = () => f.setState({ view: n.id });
     return {
       id: n.id, marks: n.marks || [], drawn: !!(n.marks && n.marks.length), img: n.img || null,
@@ -123,54 +123,79 @@ export function notesVals(f: Field, st: State, out: Vals): void {
       open: go, key: key(go)
     };
   });
-  out.noteTally = here.length === 0 ? "none yet" : here.length === 1 ? "one" : String(here.length).padStart(2, "0");
   const hand = st.hand;
   const drawnHere = here.filter(n => n.marks && n.marks.length);
-  out.layers = drawnHere.map(n => ({
+  const layers = drawnHere.map(n => ({
     marks: n.marks, ink: n.ink || f.inkColor(),
     op: hand ? (hand === n.id ? "0.95" : "0.07") : (0.34 + (n.mine ? 0.3 : 0)).toFixed(2)
   }));
   const handOf = hand ? here.find(n => n.id === hand) : null;
-  out.overlayLabel = handOf ? "one hand · " + (handOf.mine ? "you" : handOf.by)
-    : drawnHere.length ? drawnHere.length + (drawnHere.length === 1 ? " sheet laid over it" : " sheets laid over each other")
-    : "no sheets laid over it yet";
+  return {
+    notesHere,
+    noteTally: here.length === 0 ? "none yet" : here.length === 1 ? "one" : String(here.length).padStart(2, "0"),
+    layers,
+    overlayLabel: handOf ? "one hand · " + (handOf.mine ? "you" : handOf.by)
+      : drawnHere.length ? drawnHere.length + (drawnHere.length === 1 ? " sheet laid over it" : " sheets laid over each other")
+      : "no sheets laid over it yet"
+  };
 }
 
-export function composeVals(f: Field, st: State, out: Vals): void {
+export function composeVals(f: Field, st: State) {
   const co = st.compose ? f.byId(st.compose) : null;
   const wsel = (on: boolean) => on ? "var(--field-accent)" : "color-mix(in srgb, var(--field-mist) 60%, transparent)";
-  out.compose = co ? {
-    title: co.t, plate: plate(co), img: f.paperImg || null, imgCss: f.paperImg ? "url(" + f.paperImg + ")" : null,
-    uploadLabel: f.paperImg ? "sketch laid down" : "upload a sketch",
-    fine: wsel(f.paperW < 1.2), medium: wsel(f.paperW >= 1.2 && f.paperW < 2.6), broad: wsel(f.paperW >= 2.6)
-  } : null;
-  out.noteTxt = st.noteTxt;
-  out.onCompose = () => { if (!st.open) return; f.paperStrokes = []; f.paperImg = null; f.setState({ compose: st.open, noteTxt: "" }); };
-  out.onDiscard = () => { f.paperStrokes = []; f.paperImg = null; f.setState({ compose: null, noteTxt: "" }); };
-  out.onUndo = () => { f.paperStrokes.pop(); f.paintPaper(); };
-  out.onClearPaper = () => { f.paperStrokes = []; f.paperImg = null; f.paintPaper(); f.forceUpdate(); };
-  out.onFine = () => { f.paperW = 0.9; f.forceUpdate(); };
-  out.onMedium = () => { f.paperW = 1.8; f.forceUpdate(); };
-  out.onBroad = () => { f.paperW = 3.4; f.forceUpdate(); };
-  out.onNoteTxt = (e: React.ChangeEvent<HTMLTextAreaElement>) => f.setState({ noteTxt: e.target.value });
-  out.onCommitNote = f.commitNote;
-  out.onUpload = f.onUpload;
-  out.onComposeKey = key(out.onCompose);
-  out.onDiscardKey = key(out.onDiscard);
-  out.onUndoKey = key(out.onUndo);
-  out.onClearPaperKey = key(out.onClearPaper);
-  out.onFineKey = key(out.onFine);
-  out.onMediumKey = key(out.onMedium);
-  out.onBroadKey = key(out.onBroad);
-  out.onCommitNoteKey = key(() => f.commitNote());
+  const onCompose = () => { if (!st.open) return; f.paperStrokes = []; f.paperImg = null; f.setState({ compose: st.open, noteTxt: "" }); };
+  const onDiscard = () => { f.paperStrokes = []; f.paperImg = null; f.setState({ compose: null, noteTxt: "" }); };
+  const onUndo = () => { f.paperStrokes.pop(); f.paintPaper(); };
+  const onClearPaper = () => { f.paperStrokes = []; f.paperImg = null; f.paintPaper(); f.forceUpdate(); };
+  const onFine = () => { f.paperW = 0.9; f.forceUpdate(); };
+  const onMedium = () => { f.paperW = 1.8; f.forceUpdate(); };
+  const onBroad = () => { f.paperW = 3.4; f.forceUpdate(); };
+  return {
+    compose: co ? {
+      title: co.t, plate: plate(co), img: f.paperImg || null, imgCss: f.paperImg ? "url(" + f.paperImg + ")" : null,
+      uploadLabel: f.paperImg ? "sketch laid down" : "upload a sketch",
+      fine: wsel(f.paperW < 1.2), medium: wsel(f.paperW >= 1.2 && f.paperW < 2.6), broad: wsel(f.paperW >= 2.6)
+    } : null,
+    noteTxt: st.noteTxt,
+    onCompose, onDiscard, onUndo, onClearPaper, onFine, onMedium, onBroad,
+    onNoteTxt: (e: React.ChangeEvent<HTMLInputElement>) => f.setState({ noteTxt: e.target.value }),
+    onCommitNote: f.commitNote,
+    onUpload: f.onUpload,
+    onComposeKey: key(onCompose),
+    onDiscardKey: key(onDiscard),
+    onUndoKey: key(onUndo),
+    onClearPaperKey: key(onClearPaper),
+    onFineKey: key(onFine),
+    onMediumKey: key(onMedium),
+    onBroadKey: key(onBroad),
+    onCommitNoteKey: key(() => f.commitNote())
+  };
 }
 
-export function viewVals(f: Field, st: State, out: Vals): void {
+type NoteView = {
+  title: string; plate: PlateSeg[]; marks: NoteMark[]; img: string | null; ink: string; txt: string;
+  imgCss: string | null; by: string; stamp: string; walk: string | null;
+};
+type JourneyStep = { n: string; title: string; here: string; color: string; go: () => void; key: KeyHandler };
+type ViewVals = {
+  view: NoteView | null;
+  journey: JourneyStep[];
+  viewFollow: string | null;
+  onFollowTrace: () => void;
+  onFollowTraceKey: KeyHandler;
+  onCloseNote: () => void;
+  onCloseNoteKey: KeyHandler;
+};
+
+export function viewVals(f: Field, st: State): ViewVals {
   const vn = st.view ? f.NOTES.find(n => n.id === st.view) : null;
+  const onCloseNote = () => f.setState({ view: null });
+  let view: NoteView | null = null, journey: JourneyStep[] = [], viewFollow: string | null = null;
+  let onFollowTrace = () => {};
   if (vn) {
     const vo = f.byId(vn.obj), nxt = f.nextInWalk(vn);
     const handNotes = f.NOTES.filter(n => n.by === vn.by && n.id !== vn.id);
-    out.view = {
+    view = {
       title: vo.t, plate: plate(vo), marks: vn.marks || [], img: vn.img || null,
       ink: vn.ink || f.inkColor(), txt: vn.txt, imgCss: vn.img ? "url(" + vn.img + ")" : null,
       by: vn.mine ? "left by you" : "left by " + vn.by,
@@ -179,13 +204,13 @@ export function viewVals(f: Field, st: State, out: Vals): void {
     };
     const wk = vn.walk ? st.seeded.find(s => s.name === vn.walk) : null;
     const stepsArr = wk ? wk.steps : (vn.mine ? st.trace.map(t => t.id) : []);
-    out.journey = stepsArr.map((sid, i) => {
+    journey = stepsArr.map((sid, i) => {
       const so = f.byId(sid), on = sid === vn.obj;
       const go = () => { f.setState({ view: null, joined: vn.walk || null }); f.flyTo(sid, "↓", false, true); };
       return { n: String(i + 1).padStart(2, "0"), title: so.t, here: on ? "this trace" : "", color: on ? "var(--field-accent)" : "color-mix(in srgb, var(--field-ink) 55%, transparent)", go, key: key(go) };
     });
-    out.viewFollow = nxt ? "follow where they went next" : (handNotes.length ? "another trace by this hand" : null);
-    out.onFollowTrace = () => {
+    viewFollow = nxt ? "follow where they went next" : (handNotes.length ? "another trace by this hand" : null);
+    onFollowTrace = () => {
       if (nxt) { f.setState({ view: null, joined: vn.walk }); f.flyTo(nxt, "↓", false, true); }
       else if (handNotes.length) {
         const pick = handNotes[Math.floor(Math.random() * handNotes.length)];
@@ -194,8 +219,6 @@ export function viewVals(f: Field, st: State, out: Vals): void {
         f.later(() => f.setState({ view: pick.id }), 1100);
       }
     };
-  } else { out.view = null; out.viewFollow = null; out.journey = []; out.onFollowTrace = () => {}; }
-  out.onCloseNote = () => f.setState({ view: null });
-  out.onCloseNoteKey = key(out.onCloseNote);
-  out.onFollowTraceKey = key(() => out.onFollowTrace());
+  }
+  return { view, journey, viewFollow, onFollowTrace, onFollowTraceKey: key(() => onFollowTrace()), onCloseNote, onCloseNoteKey: key(onCloseNote) };
 }

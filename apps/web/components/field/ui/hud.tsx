@@ -1,5 +1,5 @@
 // HUD: the instruments, jump readout, focus bar, hint line and the others list.
-import type { V } from "../types";
+import type { V, Shown } from "../types";
 
 // One HUD control: label, then a flat square that carries a cross while the thing is on.
 function renderToggle(label: string, on: boolean, onClick: () => void, onKeyDown: (e: React.KeyboardEvent) => void) {
@@ -60,24 +60,24 @@ export function renderHud(v: V) {
   );
 }
 
-export function renderJump(v: V) {
+export function renderJump(v: V, jump: Shown<"jump">) {
   return (
     <div data-role="jump" data-plane-ui="1" data-keepclear="20" style={{ position: "absolute", right: 24, top: 112, zIndex: 20, pointerEvents: "none", textAlign: "right", willChange: "transform, opacity" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 3, padding: "9px 12px 9px 0", borderRight: "1px solid var(--field-line)", animation: "am-in 700ms ease both" }}>
-        <div className="field-label field-label-dim" style={{ fontSize: 9, letterSpacing: "0.2em" }}>{v.jump.span}</div>
-        <div className="field-label field-label-accent" style={{ fontSize: 11, letterSpacing: "0.04em" }}>{v.jump.years}</div>
-        <div className="field-label" style={{ fontSize: 9, letterSpacing: "0.04em", color: "rgba(var(--field-mute-rgb), 0.55)" }}>{v.jump.paces}</div>
+        <div className="field-label field-label-dim" style={{ fontSize: 9, letterSpacing: "0.2em" }}>{jump.span}</div>
+        <div className="field-label field-label-accent" style={{ fontSize: 11, letterSpacing: "0.04em" }}>{jump.years}</div>
+        <div className="field-label" style={{ fontSize: 9, letterSpacing: "0.04em", color: "rgba(var(--field-mute-rgb), 0.55)" }}>{jump.paces}</div>
       </div>
     </div>
   );
 }
 
-export function renderFocusbar(v: V) {
+export function renderFocusbar(v: V, focus: Shown<"focus">) {
   return (
     <div data-role="focusbar" data-plane-ui="1" data-keepclear="22" style={{ position: "absolute", left: "50%", bottom: 30, transform: "translateX(-50%)", zIndex: 19, willChange: "transform, opacity" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, padding: "8px 14px", background: "var(--field-bg)", animation: "am-in 350ms ease both" }}>
-        <span className="field-label" style={{ fontSize: 9 }}>{v.focus.stamp}</span>
-        <span className="field-title" style={{ fontSize: 17 }}>{v.focus.title}</span>
+        <span className="field-label" style={{ fontSize: 9 }}>{focus.stamp}</span>
+        <span className="field-title" style={{ fontSize: 17 }}>{focus.title}</span>
         <span className="field-label field-label-accent" style={{ fontSize: 9 }}>{v.openAction}</span>
         <span role="button" tabIndex={0} onClick={v.onFocusAside} onKeyDown={v.onFocusAsideKey} className="field-label field-hover-mist" style={{ cursor: "pointer", outline: "none", fontSize: 9, transition: "color 400ms ease" }}>{v.focusAside}</span>
       </div>
@@ -99,7 +99,7 @@ export function renderOthers(v: V) {
   return (
     <div data-role="others" data-plane-ui="1" data-keepclear="44" style={{ position: "absolute", right: 24, bottom: 26, zIndex: 20, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 7, maxWidth: "min(34vw, 280px)", padding: "14px 16px", background: "var(--field-bg)", willChange: "opacity" }}>
       <div className="field-label" style={{ fontSize: 9, color: "rgba(var(--field-mute-rgb), 0.55)" }}>others</div>
-      {v.seeded.map((t: any) => (
+      {v.seeded.map(t => (
         <div key={t.name} role="button" tabIndex={0} onClick={t.join} onKeyDown={t.key} className="field-body field-hover-split" style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "right", fontSize: 12.5, lineHeight: 1.35, color: "color-mix(in srgb, var(--field-ink) 40%, transparent)", cursor: "pointer", outline: "none", transition: "color 400ms ease" }}>
           <span style={{ flex: "0 0 auto", width: 16, height: 1, background: t.color, opacity: t.swatch }} />
           <span>{t.name}</span>
