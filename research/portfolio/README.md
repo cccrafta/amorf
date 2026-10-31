@@ -10,4 +10,4 @@ The portfolio is the public face of the research. A case study assembles experim
 
 Nothing here is the source. The experiment folders and the records stay authoritative; a case study links to them and quotes them. An experiment appears in a case study only when its frontmatter has `publish: true` and `case_study` names the study's slug.
 
-A skill that compiles a case study from tagged experiments and records is planned and not built. Until then, case studies are written by hand and keep to the same rule: link to the source, do not copy it.
+The project skill `.claude/skills/portfolio-compile/` drafts a case study from tagged experiments and their records into `research/portfolio/<slug>.md`. Its output is a draft to edit by hand. It keeps the same rule: link to the source, do not copy it. Media is referenced by R2 key URL, never stored here.
