@@ -44,9 +44,9 @@ Entity metadata and media never go into git (the GitHub repo is public; [ADR-000
 
 ## Entities are loaded at build time
 
-[ADR-0004](../decisions/adr/0004-entities-loaded-at-build-time.md). `app/page.tsx` is an async Server Component. At build time it calls `loadEntities()` (`lib/data/entities.ts`), which fetches `entities/index.json` and every `entity.json` from `NEXT_PUBLIC_MEDIA_BASE`, converts them to `FieldObject`, and passes them to `Field` as the `entities` and `assoc` props. `Field` shows them after the placeholder seed in `lib/field-data.ts`. If R2 is unreachable the loader logs a warning and the seed shows alone.
+[ADR-0004](../decisions/adr/0004-entities-loaded-at-build-time.md). `app/page.tsx` is an async Server Component. At build time it calls `loadEntities()` (`lib/data/entities.ts`), which fetches `entities/index.json` and every `entity.json` from `NEXT_PUBLIC_MEDIA_BASE`, converts them to `FieldObject`, and passes them to `Field` as the `entities` and `assoc` props. `Field` shows them after the placeholder seed in `lib/field-data.ts`. In `next dev`, if R2 is unreachable or the variable is unset, the loader logs a warning and the seed shows alone. A production build (`next build`) fails instead, so an empty field is never deployed.
 
-Consequences to keep in mind: the JSON is public and must contain nothing private; entity edits reach the site only after `pnpm entities:sync` and a rebuild with deploy; a build with no network, or with `NEXT_PUBLIC_MEDIA_BASE` unset, ships the seed only.
+Consequences to keep in mind: the JSON is public and must contain nothing private; entity edits reach the site only after `pnpm entities:sync` and a rebuild with deploy; a production build with no network, or with `NEXT_PUBLIC_MEDIA_BASE` unset, fails rather than shipping the seed.
 
 ## Adding a service-like module
 

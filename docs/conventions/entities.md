@@ -136,7 +136,7 @@ Built from the existing yakhchal record in `apps/web/lib/field-data.ts`. Unknown
 
 ## How it maps to the current code
 
-`apps/web/lib/field-data.ts` holds the records the app runs on today. Each `entity.json` field corresponds as follows, so converting is mechanical:
+`apps/web/lib/data/entities.ts` (`toFieldObject`) converts each `entity.json` into the `FieldObject` type from `apps/web/lib/field-data.ts`. Fields correspond as follows:
 
 | `entity.json` | `FieldObject` | Note |
 | --- | --- | --- |
@@ -151,7 +151,9 @@ Built from the existing yakhchal record in `apps/web/lib/field-data.ts`. Unknown
 | `media[].file`, `kind`, `caption`, `poster` | `media[].img` or `src`, `kind`, `cap`, `poster` | `file` becomes a URL through the media URL builder. |
 | `media[].at` | `media[].at` | |
 | `related` | `ASSOC` triples | `[id, other id, reason]`. |
-| `client`, `collaborators`, `program`, `movement`, `materials`, `area`, `medium`, `discipline`, `links`, `creatorRole`, `media[].credit` | none | Stored for the record; nothing displays them yet. |
+| `links` | `links` | `{ label, url }`, shown in the facts drawer; entries without `url` are dropped. |
+| `client`, `collaborators`, `program`, `movement`, `materials`, `area`, `medium`, `discipline`, `creatorRole` | `facts` | Shown as rows in the facts drawer; `creatorRole` labels the source row. |
+| `media[].credit` | none | Stored for the record; nothing displays it yet. |
 
 User notes (`notes`) are not part of `entity.json`. They are reader annotations, seeded separately (`NOTE_SEED`).
 

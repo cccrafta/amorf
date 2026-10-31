@@ -57,9 +57,15 @@ function toFieldObject(e: Entity): FieldObject {
   };
 }
 
-// Returns null when R2 is unreachable or not configured, so the caller can fall back to the seed data.
+// Returns null in dev when R2 is unreachable or not configured, so the caller falls back to the seed data.
+// Production builds throw instead: the seed is a placeholder, and a silent fallback would deploy an empty field.
+const STRICT = process.env.NODE_ENV === "production";
+
 export async function loadEntities(): Promise<{ objects: FieldObject[]; assoc: FieldAssoc[] } | null> {
-  if (!BASE) return null;
+  if (!BASE) {
+    if (STRICT) throw new Error("[entities] NEXT_PUBLIC_MEDIA_BASE is not set; refusing to build without entities");
+    return null;
+  }
   try {
     const index = await fetch(`${BASE}/entities/index.json`).then(r => { if (!r.ok) throw new Error("index.json " + r.status); return r.json() as Promise<{ ids: string[] }>; });
     const entities = await Promise.all(index.ids.map(id =>
@@ -69,6 +75,7 @@ export async function loadEntities(): Promise<{ objects: FieldObject[]; assoc: F
     const assoc = valid.flatMap(e => (e.related || []).filter(r => ids.has(r.id)).map(r => [e.id, r.id, r.reason || ""] as FieldAssoc));
     return { objects: valid.map(toFieldObject), assoc };
   } catch (err) {
+    if (STRICT) throw new Error("[entities] loading from R2 failed: " + (err as Error).message);
     console.warn("[entities] falling back to seed data:", (err as Error).message);
     return null;
   }

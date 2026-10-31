@@ -70,6 +70,17 @@ research/**/*.mov
 research/**/*.wav
 research/**/*.mp3
 research/**/*.pdf
+research/**/*.avif
+research/**/*.heic
+research/**/*.tif
+research/**/*.tiff
+research/**/*.webm
+research/**/*.m4v
+research/**/*.m4a
+research/**/*.ogg
+research/**/*.flac
+research/**/*.aac
+research/**/*.zip
 
 # entity working copies in any app, not only apps/web
 **/content/entities/
