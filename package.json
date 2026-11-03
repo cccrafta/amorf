@@ -10,6 +10,8 @@
     "deploy": "pnpm --filter @amorf/web run deploy",
     "entities:probe": "pnpm --filter @amorf/web run entities:probe",
     "entities:check": "pnpm --filter @amorf/web run entities:check",
-    "entities:sync": "pnpm --filter @amorf/web run entities:sync"
+    "entities:sync": "pnpm --filter @amorf/web run entities:sync",
+    "research:index": "node scripts/research-index.mjs",
+    "research:check": "node scripts/research-index.mjs --check"
   }
 }
