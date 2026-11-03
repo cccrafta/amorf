@@ -1,5 +1,6 @@
 // HUD: the instruments, jump readout, focus bar, hint line and the others list.
 import type { V, Shown } from "../types";
+import { TRACES_ENABLED } from "../notes";
 
 // One HUD control: label, then a flat square that carries a cross while the thing is on.
 function renderToggle(label: string, on: boolean, onClick: () => void, onKeyDown: (e: React.KeyboardEvent) => void) {
@@ -19,7 +20,7 @@ export function renderHud(v: V) {
         <div data-role="hud-yaw">BEARING 000</div>
         <div data-role="hud-grid" className="field-label-dim">E0000 N0000</div>
         <div className="field-label-dim">WALK {v.traceCount}</div>
-        <div className="field-label-accent">TRACES {v.noteCount}</div>
+        {TRACES_ENABLED && <div className="field-label-accent">TRACES {v.noteCount}</div>}
       </div>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 7, paddingTop: 3 }}>
         {renderToggle("THE INDEX", false, v.onCatalogue, v.onCatalogueKey)}

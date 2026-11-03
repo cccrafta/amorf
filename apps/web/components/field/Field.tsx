@@ -25,6 +25,8 @@ import * as notes from "./notes";
 import * as plan from "./plan";
 import * as table from "./table";
 import * as interior from "./interior";
+import { applyRoute, syncUrl } from "./route";
+import { parsePath } from "./route-path";
 import { syncMedia } from "./media";
 import { mediaUrl } from "@/lib/media/url";
 import { catalogueVals } from "./catalogue";
@@ -51,6 +53,8 @@ export default class Field extends React.Component<Props, State> {
   TILE = 6200;
   FAR = 2700;
   NEARC = 130;
+  // 0 = flat cards, 1 = each card faces the camera exactly; below 1 keeps some of the wall
+  CURVE = 0.8;
   P = 900;
   SPREAD_Y = 260;
 
@@ -85,6 +89,12 @@ export default class Field extends React.Component<Props, State> {
   };
 
   cam = { x: 0, z: 0, tx: 0, tz: 0, yaw: 0, tyaw: 0 };
+  // URL sync (route.ts): the path a back/forward step is still travelling to, and when a flight between entities may not log a field view
+  routeGoal: string | null = null;
+  routeGoalAt = 0;
+  routeHold = 0;
+  baseTitle = "";
+  onPop?: () => void;
   els: Record<string, HTMLElement> = {};
   visited: Record<string, boolean> = {};
   screenPos: Record<string, { sx: number; sy: number; scale: number }> = {};
@@ -218,6 +228,10 @@ export default class Field extends React.Component<Props, State> {
     window.__amorfActive = this;
     this.startLoop();
     this.tick();
+    this.baseTitle = document.title;
+    applyRoute(this, parsePath(location.pathname), true);
+    this.onPop = () => applyRoute(this, parsePath(location.pathname), false);
+    window.addEventListener("popstate", this.onPop);
     this.forceUpdate();
   }
 
@@ -246,6 +260,7 @@ export default class Field extends React.Component<Props, State> {
     }
     this.resolve(); this.lastW = -1; this.layout(); this.tick();
     if (this.state.plan) this.placePlanLabels();
+    syncUrl(this);
   }
 
   dropGesture() {
@@ -266,6 +281,7 @@ export default class Field extends React.Component<Props, State> {
     this.timers.forEach(clearTimeout);
     if (this.onKey) window.removeEventListener("keydown", this.onKey);
     if (this.onResize) window.removeEventListener("resize", this.onResize);
+    if (this.onPop) window.removeEventListener("popstate", this.onPop);
     this.dropGesture();
     pool.releaseAll();
   }
@@ -420,7 +436,6 @@ export default class Field extends React.Component<Props, State> {
       const tileZ = Math.round((o.hz - cam.z - dz) / this.TILE);
       const seed = o.id + ":" + tileX + ":" + tileZ;
       const dy = (rand(seed + "y") - 0.5) * 2 * this.SPREAD_Y;
-      const tilt = (rand(seed + "t") - 0.5) * 30;
 
       const lx = dx * cs + dz * sn;
       const lzRaw = -dx * sn + dz * cs;
@@ -438,6 +453,8 @@ export default class Field extends React.Component<Props, State> {
       const op = Math.min(1, (0.36 + 0.64 * arrive) * (1 + wr * 0.24)) * pass * farFade * (1 - 0.55 * depth);
       if (op < 0.03) { el.style.visibility = "hidden"; continue; }
 
+      // cards stand on a cylinder around the camera: each turns its face toward the viewer by the bearing it sits at
+      const wrapDeg = -Math.max(-60, Math.min(60, (Math.atan2(lx, d) * 180) / Math.PI)) * this.CURVE;
       const scale = this.P / (this.P - lz);
       const sx = W / 2 + lx * scale, sy = H * 0.46 + dy * scale;
       if (sx < -600 || sx > W + 600) { el.style.visibility = "hidden"; continue; }
@@ -445,7 +462,7 @@ export default class Field extends React.Component<Props, State> {
       const spared = this.state.focus && this.state.focus.id === o.id;
       let clear = 1;
       if (this.keepClear && this.keepClear.length && !spared) {
-        const cw = 410 * scale, ch = 350 * scale;
+        const cw = 482 * scale, ch = 412 * scale;
         const l = sx - cw / 2, r2 = sx + cw / 2, t = sy - ch / 2, b2 = sy + ch / 2;
         for (const z of this.keepClear) {
           const gapX = Math.max(z.l - r2, l - z.r, 0);
@@ -460,7 +477,7 @@ export default class Field extends React.Component<Props, State> {
       el.style.opacity = (op * clear).toFixed(3);
       el.style.pointerEvents = op > 0.45 ? "auto" : "none";
       el.style.filter = this.reduced ? "none" : `blur(${((1 - arrive) * 1.4 + depth * 13).toFixed(2)}px)`;
-      el.style.transform = `translate3d(${lx.toFixed(1)}px, ${dy.toFixed(1)}px, ${lz.toFixed(1)}px) rotateY(${tilt.toFixed(2)}deg) translate(-50%, -50%)`;
+      el.style.transform = `translate3d(${lx.toFixed(1)}px, ${dy.toFixed(1)}px, ${lz.toFixed(1)}px) rotateY(${wrapDeg.toFixed(2)}deg) translate(-50%, -50%)`;
       this.screenPos[o.id] = { sx, sy, scale };
 
       // focus is decided by geometry, not by the dive's dimming — otherwise a
@@ -580,7 +597,7 @@ export default class Field extends React.Component<Props, State> {
       open: () => this.open(o.id, "◉"),
       marks: [], hasMarks: false, cloud: [], traceLabel: "", openTrace: () => {}
     })));
-    const fieldOn = this.props.fieldNotes ?? true;
+    const fieldOn = notes.TRACES_ENABLED && (this.props.fieldNotes ?? true);
     nodes.forEach(nd => {
       const drawn = !fieldOn ? [] : this.notesFor(nd.id).filter(n => n.marks && n.marks.length).slice(0, 4);
       nd.marks = drawn.map(n => ({ marks: n.marks, ink: n.ink || this.inkColor(), op: n.mine ? "0.95" : "0.65" }));

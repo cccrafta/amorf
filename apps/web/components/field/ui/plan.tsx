@@ -29,7 +29,12 @@ export function renderPlan(v: V) {
               the label span by position — keep exactly these two children, in this order. */}
           {v.planNodes.map(p => (
             <div key={p.id} data-pid={p.id} data-side={p.side} role="button" tabIndex={0} onClick={p.go} onKeyDown={p.key} onMouseEnter={p.enter} onMouseLeave={p.leave} onFocus={p.enter} onBlur={p.leave} style={{ position: "absolute", left: p.x, top: p.y, width: 0, height: 0, zIndex: p.z, cursor: "pointer", outline: "none", opacity: p.op, transition: "opacity 300ms ease" }}>
-              <span style={{ position: "absolute", left: 0, top: 0, transform: "translate(-50%, -50%)", width: p.size, height: p.size, border: `1px solid ${p.ink}`, background: "color-mix(in srgb, var(--field-ink) 7%, transparent)" }} />
+              <span style={{ position: "absolute", left: 0, top: 0, transform: "translate(-50%, -50%)", width: p.size, height: p.size, border: `1px solid ${p.ink}`, background: "color-mix(in srgb, var(--field-ink) 7%, transparent)", overflow: "hidden" }}>
+                {p.thumb && (
+                  // eslint-disable-next-line @next/next/no-img-element -- static export: next/image optimisation is not available
+                  <img src={p.thumb} alt="" decoding="async" draggable={false} style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }} />
+                )}
+              </span>
               <span style={{ position: "absolute", top: 0, left: p.lox, transform: p.ltf, whiteSpace: "nowrap", fontFamily: "var(--font-label)", fontSize: 8.5, letterSpacing: "0.1em", color: p.labelInk, opacity: p.labelOp, transition: "opacity 260ms ease" }}>{p.title}</span>
             </div>
           ))}

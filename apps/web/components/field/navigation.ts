@@ -1,4 +1,5 @@
 // Navigation: opening an object, flying to it, searching, and naming the walk.
+import { stowMedia } from "./media";
 import type React from "react";
 import type Field from "./Field";
 import type { Walk } from "./types";
@@ -16,7 +17,23 @@ export function open(f: Field, id: string, mark: string) {
   if (f.suppressClick && performance.now() - f.suppressClick < 220) return;
   // Reaching for another entity from inside one is a pull-back first; the leave opens it once the field is back.
   if (f.state.open) { if (f.state.open !== id) f.leaveToward(id, mark, false); return; }
+  enter(f, id, mark);
+}
+
+// The end of a map transition: the open entity is swapped for id without closing the interior, and the camera is put
+// straight at id's card, so leaving afterwards lands in the right place in the field.
+export function switchTo(f: Field, id: string, mark: string) {
+  if (f.state.open) stowMedia(f, f.state.open);
+  f.ix.layout = null;
+  enter(f, id, mark);
+  f.ix.slid = id;
+  f.cam.x = f.cam.tx; f.cam.z = f.cam.tz; f.cam.yaw = f.cam.tyaw;
+  f.ix.phase = "inside";
+}
+
+function enter(f: Field, id: string, mark: string) {
   f.clearFilterFor(id);
+  f.routeHold = 0;
   const o = f.byId(id);
   f.visited[id] = true;
   f.visits[id] = (f.visits[id] || 0) + 1;
@@ -62,6 +79,8 @@ export function approach(f: Field, id: string, dist: number) {
 export function flyTo(f: Field, id: string, mark: string, allowFriction: boolean, andOpen: boolean) {
   if (andOpen && f.state.open) { f.leaveToward(id, mark, allowFriction); return; }
   f.clearFilterFor(id);
+  // the field view between leaving the current view and the entity opening is not worth a history entry
+  if (andOpen) f.routeHold = performance.now() + 4000;
   let target = id, m = mark;
   f.navCount += 1;
   const every = Math.max(2, f.props.frictionEvery ?? 8);

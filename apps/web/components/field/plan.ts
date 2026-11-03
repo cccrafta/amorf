@@ -2,6 +2,10 @@
 import type Field from "./Field";
 import type { FieldNode, State } from "./types";
 import { key } from "./util";
+import { mediaUrl } from "@/lib/media/url";
+
+// A node with a thumbnail shows it as the mark, so it needs room to be read; the worn-size range is shifted up for every node to keep them comparable.
+const nodePx = (o: FieldNode, wr: number) => (o.thumb ? 34 : 5) + wr * (o.thumb ? 30 : 13);
 
 // Plan labels are placed only after the marks are already on the page, worn
 // objects first, and dropped rather than overlapped if they clash — a name
@@ -20,7 +24,7 @@ export function placePlanLabels(f: Field) {
   const placed: DOMRect[] = items.map(it => it.mark.getBoundingClientRect());
   const clash = (r: DOMRect) => placed.some(q => r.left < q.right - 1 && r.right > q.left + 1 && r.top < q.bottom - 1 && r.bottom > q.top + 1);
   items.forEach(it => {
-    const half = (5 + it.wr * 13) / 2 + 8;
+    const half = it.mark.offsetWidth / 2 + 8;
     const order = it.n.dataset.side === "left" ? ["left", "right"] : ["right", "left"];
     const put = (s: string) => {
       it.lab.style.left = (s === "right" ? half : -half).toFixed(1) + "px";
@@ -51,13 +55,15 @@ export function planVals(f: Field, st: State) {
     const go = () => { f.setState({ plan: false }); f.flyTo(o.id, "↓", false, true); };
     const on = st.planHover === o.id;
     const side = o.hx / f.TILE > 0.5 ? "row-reverse" : "row";
-    const half = (5 + wr * 13) / 2 + 8;
+    const half = nodePx(o, wr) / 2 + 8;
     return {
       id: o.id, title: o.t,
       x: (o.hx / f.TILE * 100).toFixed(2) + "%",
       y: (o.hz / f.TILE * 100).toFixed(2) + "%",
-      size: (5 + wr * 13).toFixed(1) + "px",
-      op: on ? "1" : (0.3 + wr * 0.7).toFixed(2),
+      size: nodePx(o, wr).toFixed(1) + "px",
+      thumb: o.thumb ? mediaUrl(o.thumb) : null,
+      // a picture stays near full strength so its colour reads; a bare square fades with wear
+      op: on ? "1" : o.thumb ? (0.75 + wr * 0.25).toFixed(2) : (0.3 + wr * 0.7).toFixed(2),
       ink: on ? "var(--field-accent)" : f.visited[o.id] ? "var(--field-accent)" : "#C9C5B9",
       lox: (side === "row" ? half : -half).toFixed(1) + "px",
       ltf: side === "row" ? "translateY(-50%)" : "translate(-100%, -50%)",

@@ -1,6 +1,7 @@
 // Interior paint: writes the dive transform, pan offset and edge-label pull feedback to the DOM each frame.
 import type Field from "../Field";
-import { COMMIT, DIRS, PLATE_DROP, type Dir, type Interior } from "./state";
+import { clampN, COMMIT, DIRS, PLATE_DROP, SLIDE_MS, SLIDE_OUT_MS, SLIDE_REDUCED_MS, type Dir, type Interior } from "./state";
+import { limits } from "./physics";
 
 function mount(ix: Interior): HTMLElement | null {
   if (ix.root && ix.root.isConnected) return ix.root;
@@ -10,11 +11,16 @@ function mount(ix: Interior): HTMLElement | null {
   ix.edges = {};
   DIRS.forEach(d => {
     const q = (role: string) => (root ? root.querySelector<HTMLElement>('[data-role="' + role + d + '"]') : null);
-    ix.edges[d] = { label: q("edge-"), line: q("edgeline-"), sub: q("edgesub-") };
+    ix.edges[d] = { label: q("edge-"), line: q("edgeline-"), sub: q("edgesub-"), peek: q("peek-") };
   });
   ix.paintKey = ""; ix.compKey = ""; ix.edgeKey = "";
   return root;
 }
+
+// Where each side's preview waits, as a share of the viewport: it slides in from that side.
+const OFF: Record<Dir, [number, number]> = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
+// r is the revealed share, 0 (out of view) to 1 (covering the view).
+export const peekAt = (d: Dir, r: number) => { const [ox, oy] = OFF[d]; return "translate3d(" + (ox * (1 - r) * 100).toFixed(2) + "%, " + (oy * (1 - r) * 100).toFixed(2) + "%, 0)"; };
 
 // Toward the board's centre: the pulled label comes in to meet the reader.
 const INWARD: Record<Dir, [number, number]> = { left: [1, 0], right: [-1, 0], up: [0, 1], down: [0, -1] };
@@ -23,13 +29,13 @@ const INWARD: Record<Dir, [number, number]> = { left: [1, 0], right: [-1, 0], up
 // Narrow screens show left and right only while pulled. The drawer hides them all: it covers the right edge.
 function paintEdges(f: Field, ix: Interior) {
   const e = ix.phase === "inside" && !ix.drawer ? ix.edge : null;
-  const ek = (e ? e.dir + e.pull.toFixed(3) : "-") + (f.narrow ? "n" : "w") + (ix.drawer ? "d" : "");
+  const ek = (e ? e.dir + e.pull.toFixed(3) : "-") + (f.narrow ? "n" : "w") + (ix.drawer ? "d" : "") + (ix.slide ? "s" : "");
   if (ek === ix.edgeKey) return;
   ix.edgeKey = ek;
   DIRS.forEach(d => {
     const el = ix.edges[d]; if (!el || !el.label) return;
     const p = e && e.dir === d ? e.pull : 0, k = Math.min(1, p / COMMIT);
-    const side = d === "left" || d === "right", hidden = !!ix.drawer || (f.narrow && side && p < 0.02);
+    const side = d === "left" || d === "right", hidden = !!ix.drawer || !!ix.slide || (f.narrow && side && p < 0.02);
     el.label.style.opacity = hidden ? "0" : (0.45 + 0.55 * k).toFixed(3);
     el.label.style.pointerEvents = hidden ? "none" : "auto";
     const [ux, uy] = INWARD[d], t = f.reduced ? 0 : 24 * k;
@@ -84,8 +90,59 @@ export function paint(f: Field) {
   const cur = ix.drag && ix.drag.moved > 6 ? "grabbing" : "grab";
   if (root.dataset.cur !== cur) { root.dataset.cur = cur; root.style.cursor = cur; }
 
-  const ck = ix.panX.toFixed(1) + "," + ix.panY.toFixed(1);
-  if (ix.surface && ck !== ix.compKey) { ix.compKey = ck; ix.surface.style.transform = "translate3d(" + ix.panX.toFixed(1) + "px, " + ix.panY.toFixed(1) + "px, 0)"; }
+  const ck = ix.panX.toFixed(1) + "," + ix.panY.toFixed(1) + "," + ix.zoom.toFixed(4);
+  if (ix.surface && ck !== ix.compKey) { ix.compKey = ck; ix.surface.style.transform = "translate3d(" + ix.panX.toFixed(1) + "px, " + ix.panY.toFixed(1) + "px, 0) scale(" + ix.zoom.toFixed(4) + ")"; }
 
+  paintSheet(f, ix, root, W, H);
   paintEdges(f, ix);
+}
+
+// The entity and its neighbours read as one table: a pulled neighbour's preview (no background) sits against the
+// board's edge, so it shows exactly as far as the board has been pulled past that edge, and the text overlay moves with
+// the board. On release the slide carries both the rest of the way; after the switch the preview fades off the new board.
+function paintSheet(f: Field, ix: Interior, root: HTMLElement, W: number, H: number) {
+  const sl = ix.slide, now = performance.now();
+  const float = root.querySelector<HTMLElement>('[data-role="float"]');
+  // the text overlay is one element across entity switches (see view.tsx), so a new entity starts it at the top
+  if (float && float.dataset.for !== ix.floatFor) { float.dataset.for = ix.floatFor; float.scrollTop = 0; }
+  let dir: Dir | null = null, r = 0;
+  if (sl) {
+    const cover = root.querySelector<HTMLElement>('[data-role="cover"]');
+    if (sl.r0 < 0) sl.r0 = sl.dir ? overshoot(ix, sl.dir, W, H) : 0;
+    if (sl.out) {
+      if (cover) { cover.style.transform = "none"; cover.style.opacity = Math.max(0, 1 - (now - sl.out) / SLIDE_OUT_MS).toFixed(3); }
+    } else {
+      const t = clampN((now - sl.start) / (f.reduced ? SLIDE_REDUCED_MS : SLIDE_MS), 0, 1), e = 1 - Math.pow(1 - t, 3);
+      if (!sl.dir || f.reduced) {
+        if (cover) { cover.style.transform = "none"; cover.style.opacity = e.toFixed(3); }
+        if (float) float.style.opacity = (1 - e).toFixed(3);
+      } else {
+        dir = sl.dir; r = sl.r0 + (1 - sl.r0) * e;
+        if (cover) { cover.style.opacity = "1"; cover.style.transform = peekAt(dir, r); }
+        const [ox, oy] = OFF[dir], k = r - sl.r0;
+        if (ix.surface) { ix.compKey = ""; ix.surface.style.transform = "translate3d(" + (ix.panX - ox * k * W).toFixed(1) + "px, " + (ix.panY - oy * k * H).toFixed(1) + "px, 0) scale(" + ix.zoom.toFixed(4) + ")"; }
+      }
+    }
+  } else if (ix.phase === "inside" && ix.edge && !ix.drawer) {
+    dir = ix.edge.dir; r = overshoot(ix, dir, W, H);
+  }
+  DIRS.forEach(d => {
+    const peek = ix.edges[d]?.peek; if (!peek) return;
+    const on = !sl && d === dir && r > 0.002;
+    peek.style.visibility = on ? "visible" : "hidden";
+    if (on) peek.style.transform = peekAt(d, r);
+  });
+  if (float && !(sl && (!sl.dir || f.reduced) && !sl.out)) {
+    const [ox, oy] = dir ? OFF[dir] : [0, 0];
+    float.style.transform = dir ? "translate3d(" + (-ox * r * W).toFixed(1) + "px, " + (-oy * r * H).toFixed(1) + "px, 0)" : "";
+    float.style.opacity = ix.drawer ? "0" : "1";
+  }
+}
+
+// How far the board is pulled past the edge on side d, as a share of the viewport along that axis.
+function overshoot(ix: Interior, d: Dir, W: number, H: number) {
+  if (!ix.comp) return 0;
+  const { loX, loY, hiX, hiY } = limits(ix.comp, ix.zoom);
+  const px = d === "left" ? ix.panX - hiX : d === "right" ? loX - ix.panX : d === "up" ? ix.panY - hiY : loY - ix.panY;
+  return clampN(px / (d === "left" || d === "right" ? W : H), 0, 1);
 }

@@ -5,6 +5,10 @@ import type { FieldNote, NoteMark, PlateSeg, State } from "./types";
 import { key, type KeyHandler } from "./util";
 import { plate } from "./plate";
 
+// Marks visitors leave on entities are off until traces are specified (docs/backlog.md).
+// Walks are separate and stay on. Gates the compose control, drawer tab, card marks and HUD count.
+export const TRACES_ENABLED = false;
+
 export function notesFor(f: Field, id: string) { return f.NOTES.filter(n => n.obj === id); }
 
 export function inkColor(f: Field): string { return f.props.inkColor || "#E4DFD2"; }

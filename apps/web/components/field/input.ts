@@ -1,6 +1,7 @@
 // Input: pointer, wheel, touch and keyboard bindings for the field stage.
+import { scroll } from "./scroll";
 import type Field from "./Field";
-import { keyPan, setDrawer } from "./interior";
+import { keyPan, escInterior } from "./interior";
 
 export function used(f: Field) { if (!f.hintGone) f.hintGone = true; }
 
@@ -27,8 +28,8 @@ export function bindStage(f: Field, el: HTMLElement) {
     const lateral = Math.abs(e.deltaX) > Math.abs(e.deltaY);
     const dx = lateral ? e.deltaX : (e.shiftKey ? e.deltaY : 0);
     const dy = (lateral || e.shiftKey) ? 0 : e.deltaY;
-    f.forward(-dy * 1.9);
-    f.cam.tyaw += dx * 0.085;
+    f.forward(-dy * scroll.walk);
+    f.cam.tyaw += dx * scroll.turn;
     f.tick();
   }, { passive: false, signal: ac.signal });
 
@@ -85,7 +86,7 @@ export function keydown(f: Field, e: KeyboardEvent) {
   const ae = document.activeElement as HTMLElement | null, typing = !!(ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA"));
   if (e.key === "Escape") {
     if (typing) { ae!.blur(); f.setState({ askOpen: false }); return; }
-    if (f.state.open) { if (f.ix.drawer) setDrawer(f, null); else f.collapse(); e.preventDefault(); }
+    if (f.state.open) { if (!escInterior(f)) f.collapse(); e.preventDefault(); }
     return;
   }
   if (typing) return;
