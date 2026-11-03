@@ -1,7 +1,7 @@
 ---
 title: Next 16 and static export constraints
-updated: 2026-10-31
-last_verified: 2026-10-31
+updated: 2026-11-03
+last_verified: 2026-11-03
 status: summarised from the Next docs bundled in node_modules; re-check against the installed version when upgrading
 ---
 
@@ -41,3 +41,8 @@ If a task needs one of these, it needs a different deployment mode. Stop and dis
 
 - Whether `cacheComponents` is compatible with `output: "export"`. Leave it off.
 - Cloudflare Workers specifics are community-sourced (the Next docs only link Cloudflare's own guide, `01-app/01-getting-started/17-deploying.md`). `deployment.md` records what this repo actually runs.
+
+## Routes
+
+There is one page, `apps/web/app/[[...route]]/page.tsx`, with `dynamicParams = false` and a `generateStaticParams` that lists `/`, `/plan`, `/entities/<id>` for every entity and `/walks/<slug>` for every seeded walk. Each is prerendered to its own HTML file, so a shared link is a real page (Cloudflare serves `/plan` from `out/plan.html`). After mount `Field` moves between them with `history.pushState` and a `popstate` listener (`components/field/route.ts`; pure parsing in `route-path.ts`), so it never remounts. A new view that deserves an address needs its path added to `route-path.ts` and to `generateStaticParams`. `?q=` carries the search text and is replaced, not pushed. Positions inside a board are deliberately not in the URL.
+

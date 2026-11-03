@@ -1,7 +1,7 @@
 ---
 title: amorf docs vault
-updated: 2026-10-31
-last_verified: 2026-10-31
+updated: 2026-11-01
+last_verified: 2026-11-01
 ---
 
 # amorf docs
@@ -17,11 +17,13 @@ Start here. Read only the page that matches the task; each page is self-containe
 | [conventions/styling.md](conventions/styling.md) | changing colors, fonts or any visual styling; adding a color or a type recipe |
 | [conventions/git.md](conventions/git.md) | writing a commit message, choosing a scope, or deciding what may be committed |
 | [conventions/decision-records.md](conventions/decision-records.md) | deciding whether something needs an ADR, a DDR or an experiment; superseding a record |
-| [conventions/research-log.md](conventions/research-log.md) | creating or updating an experiment, its frontmatter, tags or media |
+| [conventions/research-log.md](conventions/research-log.md) | creating or updating an experiment or study, its frontmatter, parts, tags or media |
 | [decisions/README.md](decisions/README.md) | finding why something is the way it is; the index of every ADR and DDR; adding a record |
 | [design/entity-view.md](design/entity-view.md) | changing the entity view: fixed frame, tools drawer, authored placement, edge-to-neighbour navigation (built) |
+| [backlog.md](backlog.md) | picking up planned work or feedback items; adding a to-do |
+| [open-questions.md](open-questions.md) | a choice is raised but not made; recording or closing an open question (`OQ-NNN`) |
 | [deployment.md](deployment.md) | deploying, changing the bucket, CORS, the domain, or debugging missing media on the live site |
-| [../research/README.md](../research/README.md) | working on theory, experiments or the portfolio; what the project claims and has tried |
+| [../research/README.md](../research/README.md) | working on theory, the ontology parts, studies, experiments or the portfolio; what the project claims and has tried |
 
 ## What this project is
 

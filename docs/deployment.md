@@ -1,7 +1,7 @@
 ---
 title: Deployment (Cloudflare Workers + R2)
-updated: 2026-10-31
-last_verified: 2026-10-31
+updated: 2026-11-02
+last_verified: 2026-11-02
 status: live at https://amorf.amorf.workers.dev; media CORS issue open (see Known issue); commands run from the repository root with pnpm
 ---
 
@@ -52,6 +52,10 @@ Fixes, in the `amorf.co` zone dashboard (the Wrangler login has no cache-purge s
 - Permanent: a Transform Rule (Rules → Transform Rules → Modify Response Header) for hostname `media.amorf.co` that sets `Access-Control-Allow-Origin: *`. The media is public and requested without credentials, so this is safe. Alternatively, a Cache Rule that bypasses the cache for that host, at the cost of serving the 192 MB video from R2 every time.
 
 Status: not confirmed fixed. Update this section when it is.
+
+### Edge caching for media
+
+Objects in the bucket already send `cache-control: public, max-age=31536000, immutable`, but responses showed `cf-cache-status: DYNAMIC` (checked 2026-11-01): the Cloudflare edge does not cache them, so every first view in a browser goes to R2. The entity view preloads pictures ahead of the reader, which makes edge hits matter. Fix, in the `amorf.co` zone dashboard (Caching → Cache Rules): a rule for hostname `media.amorf.co` set to "Eligible for cache" with "Respect origin TTL". Do this together with the CORS header rule above, so the cached copy carries `access-control-allow-origin`. Status: not done. Confirm with `curl -sI <media url> | grep -i cf-cache-status` (expect `HIT` on the second request).
 
 ## Custom domain for the app
 
