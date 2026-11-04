@@ -11,11 +11,12 @@ tools: [] # software, instruments, techniques
 outcome: # filled when status is done or abandoned; one sentence, the answer or the reason it stopped
 decisions: [] # records this experiment backs: DDR-NNNN, ADR-NNNN
 tags: [] # portfolio annotations, lowercase kebab-case
+parts: [] # ontology parts this informs: entity, field, coordinates, space, journey, archive
 media: [] # R2 keys under experiments/EXP-NNNN/, never files in git
 publish: false # true when the experiment may appear in the portfolio
 case_study: null # slug of the case study that uses it, or null
-updated: 2026-10-31
-last_verified: 2026-10-31
+updated: 2026-11-01
+last_verified: 2026-11-01
 ---
 
 # EXP-0000: Short title naming the question

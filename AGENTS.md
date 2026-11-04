@@ -8,7 +8,8 @@ amorf is a design-research project with architects. Thesis: structure is the pri
 apps/web/     The site: Next.js 16 static export on Cloudflare (package @amorf/web)
 apps/api/     Future backend app (not created yet)
 packages/     Shared @amorf/* packages; empty until a second consumer exists (see packages/README.md)
-research/     theory/, experiments/, portfolio/ (see research/README.md)
+research/     theory/ (with ontology/), studies/, experiments/, portfolio/ (see research/README.md)
+scripts/      Repo-level Node scripts (research index); app scripts stay in their app
 docs/         Conventions, decisions (ADR and DDR), design notes, templates, deployment
 ```
 
@@ -16,7 +17,7 @@ docs/         Conventions, decisions (ADR and DDR), design notes, templates, dep
 
 pnpm workspaces; no Turborepo or Nx. Run from the repository root; scripts delegate to `@amorf/web`:
 
-`pnpm install`, `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm run deploy`, `pnpm entities:check` (also `entities:probe`, `entities:sync`).
+`pnpm install`, `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm run deploy`, `pnpm entities:check` (also `entities:probe`, `entities:sync`), `pnpm research:index` and `pnpm research:check`.
 
 ## Start at docs/vault-home.md
 
@@ -36,7 +37,7 @@ It indexes everything. Read the page that matches the task before changing code:
 
 - A significant technology choice gets an ADR in `docs/decisions/adr/`.
 - A design, spatial or material choice gets a DDR in `docs/decisions/ddr/`.
-- A study that answers a question gets an experiment in `research/experiments/`.
+- Desk research (precedents, theory) gets a study in `research/studies/`; a test of a hypothesis gets an experiment in `research/experiments/`.
 - Never edit an accepted record; supersede it. Index: `docs/decisions/README.md`.
 
 ## Next.js

@@ -1,0 +1,251 @@
+{
+  "parts": [
+    {
+      "slug": "entity",
+      "title": "Entity"
+    },
+    {
+      "slug": "field",
+      "title": "Field"
+    },
+    {
+      "slug": "coordinates",
+      "title": "Coordinates"
+    },
+    {
+      "slug": "space",
+      "title": "Space"
+    },
+    {
+      "slug": "journey",
+      "title": "Journey"
+    },
+    {
+      "slug": "archive",
+      "title": "Archive"
+    }
+  ],
+  "items": [
+    {
+      "id": "STU-0001",
+      "kind": "study",
+      "title": "Promenade architecturale",
+      "date": "2026-11-01",
+      "status": "running",
+      "parts": [
+        "field",
+        "journey"
+      ],
+      "question": "What is the promenade architecturale, and what of it can a digital field and a recorded journey carry?",
+      "tags": [
+        "promenade-architecturale",
+        "navigation",
+        "montage",
+        "level-design"
+      ],
+      "path": "studies/0001-promenade-architecturale/README.md"
+    },
+    {
+      "id": "STU-0002",
+      "kind": "study",
+      "title": "Entrance and exit of an entity, from the field and between entities",
+      "date": "2026-11-01",
+      "status": "running",
+      "parts": [
+        "entity",
+        "field"
+      ],
+      "question": "How should an entity be loaded, entered, left and swapped so that every path (from the field, between entities, back to the field) goes through one lifecycle instead of per-path patches?",
+      "tags": [
+        "entity-view",
+        "navigation",
+        "transition",
+        "lifecycle"
+      ],
+      "path": "studies/0002-entity-lifecycle/README.md"
+    },
+    {
+      "id": "EXP-0001",
+      "kind": "experiment",
+      "title": "Entity view navigation and authored placement, pattern research",
+      "date": "2026-10-29",
+      "status": "done",
+      "parts": [
+        "entity"
+      ],
+      "question": "How should an author place content in the entity view, where do tools live, and how does a reader move from one entity to the next?",
+      "tags": [
+        "entity-view",
+        "navigation",
+        "layout",
+        "grid"
+      ],
+      "path": "experiments/0001-entity-view-navigation/README.md"
+    },
+    {
+      "id": "EXP-0002",
+      "kind": "experiment",
+      "title": "The entity view as a table, radial board with zoom",
+      "date": "2026-11-01",
+      "status": "planned",
+      "parts": [
+        "entity"
+      ],
+      "question": "Does an entity view laid out like a table (content around a centre, pannable in every direction, zoomable from overview to detail) lead readers to explore more of an entity than the current board that extends only right and down?",
+      "tags": [
+        "entity-view",
+        "layout",
+        "navigation",
+        "zoom",
+        "table-metaphor"
+      ],
+      "path": "experiments/0002-entity-view-as-table/README.md"
+    },
+    {
+      "id": "EXP-0003",
+      "kind": "experiment",
+      "title": "Feedback for a seamless switch between entities",
+      "date": "2026-11-01",
+      "status": "done",
+      "parts": [
+        "entity"
+      ],
+      "question": "When moving to a neighbouring entity happens with no transition, what cue tells the reader that the entity has changed without breaking the flow?",
+      "tags": [
+        "entity-view",
+        "navigation",
+        "transition",
+        "feedback-cue"
+      ],
+      "path": "experiments/0003-seamless-entity-switch/README.md"
+    },
+    {
+      "id": "EXP-0004",
+      "kind": "experiment",
+      "title": "Entity templates built from registered piece kinds",
+      "date": "2026-11-01",
+      "status": "running",
+      "parts": [
+        "entity"
+      ],
+      "question": "Can an entity template declare its content as pieces of registered kinds, so that adding a new kind (text now, more later) touches one renderer file and nothing in the view, placement or gesture code?",
+      "tags": [
+        "entity-view",
+        "architecture",
+        "entity-template",
+        "content-types"
+      ],
+      "path": "experiments/0004-entity-template-pieces/README.md"
+    },
+    {
+      "id": "EXP-0005",
+      "kind": "experiment",
+      "title": "One lifecycle for entering, swapping and leaving an entity",
+      "date": "2026-11-01",
+      "status": "planned",
+      "parts": [
+        "entity"
+      ],
+      "question": "Does routing every entrance and exit of an entity (from the field, between entities, back to the field) through one lifecycle with real boards and a readiness gate remove the flicker and the jumps of EXP-0003?",
+      "tags": [
+        "entity-view",
+        "navigation",
+        "transition",
+        "lifecycle"
+      ],
+      "path": "experiments/0005-entity-lifecycle/README.md"
+    },
+    {
+      "id": "EXP-0006",
+      "kind": "experiment",
+      "title": "Thresholds that make a space felt in the field",
+      "date": "2026-11-03",
+      "status": "planned",
+      "parts": [
+        "space",
+        "field"
+      ],
+      "question": "When the field is divided into spaces, each with its own atmosphere and marked off by a threshold, do visitors notice they have changed space and can they say where they are?",
+      "tags": [
+        "promenade-architecturale",
+        "threshold",
+        "wayfinding"
+      ],
+      "path": "experiments/0006-thresholds-between-spaces/README.md"
+    },
+    {
+      "id": "EXP-0007",
+      "kind": "experiment",
+      "title": "A vantage point inside each space",
+      "date": "2026-11-03",
+      "status": "planned",
+      "parts": [
+        "space",
+        "journey"
+      ],
+      "question": "Does a raised point inside a space, from which the whole space and the visitor's journey track can be seen below, orient visitors better than an overlaid map?",
+      "tags": [
+        "promenade-architecturale",
+        "vantage-point",
+        "wayfinding"
+      ],
+      "path": "experiments/0007-vantage-point/README.md"
+    },
+    {
+      "id": "EXP-0008",
+      "kind": "experiment",
+      "title": "Oblique approach and staged reveal of an entity",
+      "date": "2026-11-03",
+      "status": "planned",
+      "parts": [
+        "coordinates",
+        "entity"
+      ],
+      "question": "Does placing entities so they are approached from the side, revealing their face only when the visitor turns or comes close, make visitors more curious about them and remember them better than frontal placement?",
+      "tags": [
+        "promenade-architecturale",
+        "placement",
+        "thumbnail",
+        "reveal"
+      ],
+      "path": "experiments/0008-oblique-approach/README.md"
+    },
+    {
+      "id": "EXP-0009",
+      "kind": "experiment",
+      "title": "Circuit against cul-de-sac as the topology of a space",
+      "date": "2026-11-03",
+      "status": "planned",
+      "parts": [
+        "space",
+        "journey"
+      ],
+      "question": "Does the topology of a space, branching paths that end in cul-de-sacs or a single circuit that returns, change the shape of the journeys visitors leave in it?",
+      "tags": [
+        "promenade-architecturale",
+        "topology",
+        "journey"
+      ],
+      "path": "experiments/0009-circuit-against-cul-de-sac/README.md"
+    },
+    {
+      "id": "EXP-0010",
+      "kind": "experiment",
+      "title": "Journey recorded and replayed as montage",
+      "date": "2026-11-03",
+      "status": "planned",
+      "parts": [
+        "journey",
+        "space"
+      ],
+      "question": "If a journey records the camera's views along the path, not only the entities visited, can it be replayed as a film and walked again by another visitor as a space of its own?",
+      "tags": [
+        "promenade-architecturale",
+        "montage",
+        "journey",
+        "replay"
+      ],
+      "path": "experiments/0010-journey-as-montage/README.md"
+    }
+  ]
+}

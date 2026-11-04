@@ -1,8 +1,7 @@
 // Trace overlays: reading one trace, and composing a new one on tracing paper.
-import type { V, PlateSeg, NoteMark } from "../types";
+import type { V, PlateSeg, NoteMark, Shown } from "../types";
 
-export function renderView(v: V) {
-  const view = v.view;
+export function renderView(v: V, view: Shown<"view">) {
   return (
     <div style={{ position: "absolute", inset: 0, zIndex: 44, background: "color-mix(in srgb, var(--field-bg-dark) 95%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", padding: "clamp(16px, 3vh, 40px)", animation: "am-in 400ms ease both" }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "clamp(22px, 3.4vw, 52px)", alignItems: "center", width: "min(1120px, 100%)", maxHeight: "100%", overflowY: "auto" }}>
@@ -11,7 +10,7 @@ export function renderView(v: V) {
             {view.plate.map((s: PlateSeg, i: number) => <path key={i} d={s.d} fill={s.fl} stroke={s.st} strokeWidth={s.w} opacity={s.o} />)}
           </svg>
           {view.img && (
-            <div role="img" aria-label="an uploaded sketch" style={{ position: "absolute", inset: 0, backgroundImage: view.imgCss, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat" }} />
+            <div role="img" aria-label="an uploaded sketch" style={{ position: "absolute", inset: 0, backgroundImage: view.imgCss ?? undefined, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat" }} />
           )}
           <svg viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
             {view.marks.map((s: NoteMark, i: number) => <path key={i} d={s.d} fill="none" stroke={view.ink} strokeWidth={s.w} strokeLinecap="round" opacity={0.9} />)}
@@ -26,7 +25,7 @@ export function renderView(v: V) {
           {view.walk && (
             <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 10, paddingLeft: 13, borderLeft: "1px solid color-mix(in srgb, var(--field-accent) 40%, transparent)" }}>
               <div className="field-label" style={{ fontSize: 9, lineHeight: 1.6, color: "rgba(var(--field-mute-rgb), 0.8)" }}>{view.walk}</div>
-              {v.journey.map((j: any, ji: number) => (
+              {v.journey.map((j, ji) => (
                 <div key={ji} role="button" tabIndex={0} onClick={j.go} onKeyDown={j.key} className="field-hover-accent" style={{ display: "flex", alignItems: "baseline", gap: 10, cursor: "pointer", outline: "none", fontFamily: "var(--font-label)", fontSize: 9.5, letterSpacing: "0.08em", color: j.color, transition: "color 400ms ease" }}>
                   <span style={{ flex: "0 0 auto", color: "rgba(var(--field-mute-rgb), 0.5)" }}>{j.n}</span>
                   <span style={{ flex: "1 1 auto", minWidth: 0 }}>{j.title}</span>
@@ -47,8 +46,7 @@ export function renderView(v: V) {
   );
 }
 
-export function renderCompose(v: V) {
-  const c = v.compose;
+export function renderCompose(v: V, c: Shown<"compose">) {
   return (
     <div style={{ position: "absolute", inset: 0, zIndex: 45, background: "color-mix(in srgb, var(--field-bg-dark) 97%, transparent)", display: "flex", flexDirection: "column", animation: "am-in 400ms ease both" }}>
       <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, padding: "15px clamp(18px, 3vw, 42px)", borderBottom: "1px solid color-mix(in srgb, var(--field-line) 16%, transparent)" }}>
@@ -65,7 +63,7 @@ export function renderCompose(v: V) {
           </svg>
           <div style={{ position: "absolute", inset: 0, background: "color-mix(in srgb, var(--field-ink) 4%, transparent)", pointerEvents: "none" }} />
           {c.img && (
-            <div role="img" aria-label="an uploaded sketch" style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: c.imgCss, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat" }} />
+            <div role="img" aria-label="an uploaded sketch" style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: c.imgCss ?? undefined, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat" }} />
           )}
           {/* bindPaper() owns width/height attrs on this canvas for DPR-correct drawing —
               JSX only sets CSS size, never the element's width/height attributes. */}

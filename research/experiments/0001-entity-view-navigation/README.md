@@ -11,9 +11,10 @@ tools: [web-search]
 outcome: Fixed grid with spans for placement, tools in one right-hand drawer opened from a fixed bar, edge pull to a neighbour for navigation. Built and recorded in DDR-0002; open questions and the defaults built are listed in docs/design/entity-view.md.
 decisions: [DDR-0002]
 tags: [entity-view, navigation, layout, grid]
+parts: [entity]
 media: []
 publish: false
-case_study: null
+case_study: entity-view
 updated: 2026-10-31
 last_verified: 2026-10-31
 ---

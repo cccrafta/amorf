@@ -48,7 +48,7 @@
           "type": "object",
           "required": ["ref"],
           "properties": {
-            "ref": { "type": "string", "pattern": "^(title|meta|p:\\d+|media:.+)$", "description": "title, meta, p:<n> (description paragraph, 0-based) or media:<file>." },
+            "ref": { "type": "string", "pattern": "^(title|meta|p:\\d+|media:.+)$", "description": "media:<file>. title, meta and p:<n> still validate but are ignored with a warning: text is placed by the entity template in the float column." },
             "col": { "type": "integer", "minimum": 1 },
             "row": { "type": "integer", "minimum": 1 },
             "w": { "type": "integer", "minimum": 1, "maximum": 12 },
@@ -81,7 +81,7 @@
         "original": { "type": "string", "description": "Path of the source file inside the entity folder, originals/...." },
         "poster": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*\\.[a-z0-9]+$" },
         "focal": { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 }, "minItems": 2, "maxItems": 2 },
-        "at": { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 }, "minItems": 2, "maxItems": 2, "deprecated": true, "description": "Deprecated: use layout.items. Read only when layout.items does not list this file." },
+        "at": { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 }, "minItems": 2, "maxItems": 2, "deprecated": true, "description": "Deprecated: use layout.items. Honoured only by the authored-layout packer, not by the default radial packing. Ignored by CMS tooling." },
         "mime": { "type": "string", "description": "Generated." },
         "bytes": { "type": "integer", "description": "Generated." },
         "width": { "type": "integer", "description": "Generated." },

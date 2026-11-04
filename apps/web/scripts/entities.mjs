@@ -30,11 +30,8 @@ function probe(path) {
   } catch { return {}; }
 }
 
-// Default spans match components/field/interior/layout.ts: title 6, meta 5, paragraph 4, media 5 (portrait 4, video 7).
+// Default spans match components/field/interior/pieces/: media 5 (portrait 4, video 7).
 function spanOf(ref, media) {
-  if (ref === "title") return 6;
-  if (ref === "meta") return 5;
-  if (ref.startsWith("p:")) return 4;
   const m = media.find(x => "media:" + (x.file || x.embed?.url) === ref);
   if (m?.kind === "video") return 7;
   return m?.width && m.height && m.height / m.width > 1.05 ? 4 : 5;
@@ -46,15 +43,15 @@ function checkLayout(e, at, errors, warnings) {
   const L = e.layout, media = e.media || [], cols = L.board?.cols ?? 24;
   if (L.version !== undefined && L.version !== 1) errors.push(at("layout.version must be 1"));
   if (cols < 12 || cols > 48) errors.push(at("layout.board.cols must be 12..48"));
-  const ec = L.entry?.col ?? 1, er = L.entry?.row ?? 1, seen = new Set(), boxes = [];
+  const seen = new Set(), boxes = [];
   (L.items || []).forEach((it, i) => {
     const where = `layout.items[${i}] "${it.ref}"`;
     if (seen.has(it.ref)) errors.push(at(`${where} is listed twice`));
     seen.add(it.ref);
-    const p = /^p:(\d+)$/.exec(it.ref || "");
-    const ok = it.ref === "title" || it.ref === "meta" || (p && +p[1] < (e.description || []).length)
-      || (/^media:/.test(it.ref) && media.some(m => "media:" + (m.file || m.embed?.url) === it.ref));
-    if (!ok) { errors.push(at(`${where} does not resolve to title, meta, a description paragraph or a media[] file`)); return; }
+    // Text sits in the float column, placed by the entity template, so board placements for it are not used.
+    if (it.ref === "title" || it.ref === "meta" || /^p:\d+$/.test(it.ref || "")) { warnings.push(at(`${where} is ignored: text is placed by the entity template in the float column`)); return; }
+    const ok = /^media:/.test(it.ref) && media.some(m => "media:" + (m.file || m.embed?.url) === it.ref);
+    if (!ok) { errors.push(at(`${where} does not resolve to a media[] file`)); return; }
     const w = it.w ?? spanOf(it.ref, media);
     if (it.col && it.col + w - 1 > cols) errors.push(at(`${where} ends at column ${it.col + w - 1}, beyond board.cols ${cols}`));
     if (it.narrow?.col && it.narrow.col + (it.narrow.w ?? 4) - 1 > 4) errors.push(at(`${where} narrow placement ends beyond column 4`));
@@ -62,8 +59,6 @@ function checkLayout(e, at, errors, warnings) {
     const box = { ref: it.ref, l: it.col, r: it.col + w - 1, t: it.row, b: it.row + (it.h ?? 1) - 1 };
     for (const o of boxes) if (box.l <= o.r && o.l <= box.r && box.t <= o.b && o.t <= box.b) errors.push(at(`${where} overlaps "${o.ref}"`));
     boxes.push(box);
-    if ((it.ref === "title" || it.ref === "meta") && (box.l < ec || box.r > ec + 11 || box.t < er || box.t > er + 5))
-      warnings.push(at(`${where} starts outside the entry frame (columns ${ec}-${ec + 11}, rows ${er}-${er + 5}); it will not be visible on entry`));
   });
   media.forEach((m, i) => { if (m.at) warnings.push(at(`media[${i}].at is deprecated; place it with layout.items`)); });
 }

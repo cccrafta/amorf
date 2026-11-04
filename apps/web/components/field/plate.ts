@@ -4,7 +4,7 @@ import { rand, smooth } from "./util";
 
 export function plate(o: FieldNode, variant?: string, kind?: string): PlateSeg[] {
   const key = o.id + (variant || "");
-  const r = (n: any) => rand(key + n), S: PlateSeg[] = [];
+  const r = (n: string | number) => rand(key + n), S: PlateSeg[] = [];
   const LINE = "#C4C4C2", k = kind || o.k;
   const line = (x1: number, y1: number, x2: number, y2: number, w: number, op: number) => S.push({ d: `M${x1.toFixed(1)},${y1.toFixed(1)}L${x2.toFixed(1)},${y2.toFixed(1)}`, st: LINE, fl: "none", w, o: op.toFixed(2) });
   const dot = (cx: number, cy: number, rad: number, op: number) => S.push({ d: `M${(cx - rad).toFixed(1)},${cy.toFixed(1)}a${rad.toFixed(1)},${rad.toFixed(1)} 0 1,0 ${(rad * 2).toFixed(1)},0a${rad.toFixed(1)},${rad.toFixed(1)} 0 1,0 ${(-rad * 2).toFixed(1)},0`, st: "none", fl: LINE, w: 0, o: op.toFixed(2) });
@@ -34,7 +34,7 @@ export function plate(o: FieldNode, variant?: string, kind?: string): PlateSeg[]
 // A drawn response, generated once per seeded trace: a few loose passes of a
 // hand following something. Not an illustration of the object, a reaction to it.
 export function scribble(seed: string) {
-  const r = (k: any) => rand(seed + k), out: NoteMark[] = [];
+  const r = (k: string | number) => rand(seed + k), out: NoteMark[] = [];
   const cnt = 2 + Math.floor(r("c") * 4);
   for (let i = 0; i < cnt; i++) {
     let x = 34 + r("x" + i) * 232, y = 30 + r("y" + i) * 140;

@@ -1,6 +1,7 @@
 // Input: pointer, wheel, touch and keyboard bindings for the field stage.
+import { scroll } from "./scroll";
 import type Field from "./Field";
-import { keyPan, setDrawer } from "./interior";
+import { keyPan, escInterior } from "./interior";
 
 export function used(f: Field) { if (!f.hintGone) f.hintGone = true; }
 
@@ -15,9 +16,9 @@ export function forward(f: Field, dist: number) {
 // One binding per element: a hot reload keeps the DOM but makes a new logic
 // instance, and re-binding would multiply every scroll and drag.
 export function bindStage(f: Field, el: HTMLElement) {
-  if ((el as any).__amorfAbort) (el as any).__amorfAbort.abort();
+  if (el.__amorfAbort) el.__amorfAbort.abort();
   const ac = new AbortController();
-  (el as any).__amorfAbort = ac;
+  el.__amorfAbort = ac;
   const sig = { signal: ac.signal };
 
   el.addEventListener("wheel", (e: WheelEvent) => {
@@ -27,8 +28,8 @@ export function bindStage(f: Field, el: HTMLElement) {
     const lateral = Math.abs(e.deltaX) > Math.abs(e.deltaY);
     const dx = lateral ? e.deltaX : (e.shiftKey ? e.deltaY : 0);
     const dy = (lateral || e.shiftKey) ? 0 : e.deltaY;
-    f.forward(-dy * 1.9);
-    f.cam.tyaw += dx * 0.085;
+    f.forward(-dy * scroll.walk);
+    f.cam.tyaw += dx * scroll.turn;
     f.tick();
   }, { passive: false, signal: ac.signal });
 
@@ -40,7 +41,7 @@ export function bindStage(f: Field, el: HTMLElement) {
       if (e.buttons === 0 && e.pointerType === "mouse") { f.drag = null; f.tick(); return; }
       if (!f.drag.captured && f.drag.moved > 6) {
         f.drag.captured = true;
-        try { if (el.setPointerCapture) el.setPointerCapture(e.pointerId); } catch (err) {}
+        try { if (el.setPointerCapture) el.setPointerCapture(e.pointerId); } catch {}
       }
       const mdx = e.clientX - f.drag.x, mdy = e.clientY - f.drag.y;
       f.cam.tyaw += mdx * -0.14;
@@ -69,10 +70,8 @@ export function bindStage(f: Field, el: HTMLElement) {
   }, sig);
   el.addEventListener("pointerleave", () => { f.drag = null; f.pointer = null; }, sig);
 
-  let touch: any = null;
   el.addEventListener("touchstart", () => { f.used(); }, { passive: true, signal: ac.signal });
   el.addEventListener("touchmove", (e: TouchEvent) => { if (e.cancelable) e.preventDefault(); }, { passive: false, signal: ac.signal });
-  el.addEventListener("touchend", () => { touch = null; }, sig);
 }
 
 export function keydown(f: Field, e: KeyboardEvent) {
@@ -87,7 +86,7 @@ export function keydown(f: Field, e: KeyboardEvent) {
   const ae = document.activeElement as HTMLElement | null, typing = !!(ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA"));
   if (e.key === "Escape") {
     if (typing) { ae!.blur(); f.setState({ askOpen: false }); return; }
-    if (f.state.open) { if (f.ix.drawer) setDrawer(f, null); else f.collapse(); e.preventDefault(); }
+    if (f.state.open) { if (!escInterior(f)) f.collapse(); e.preventDefault(); }
     return;
   }
   if (typing) return;

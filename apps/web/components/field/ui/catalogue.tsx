@@ -13,11 +13,11 @@ export function renderCatalogue(v: V) {
       </div>
       <div style={{ flex: "1 1 auto", overflowY: "auto", padding: "clamp(24px, 4vh, 46px) clamp(20px, 4vw, 56px) 60px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(268px, 1fr))", gap: "clamp(30px, 4vw, 58px) clamp(24px, 3vw, 44px)" }}>
-          {v.journeys.map((j: any, ji: number) => (
+          {v.journeys.map((j, ji) => (
             <div key={j.name + ji} role="button" tabIndex={0} onClick={j.enter} onKeyDown={j.key} onMouseEnter={j.enter_hover} onMouseLeave={j.leave_hover} onFocus={j.enter_hover} onBlur={j.leave_hover} className="field-hover-opacity" style={{ display: "flex", flexDirection: "column", gap: 14, cursor: "pointer", outline: "none", opacity: 0.82, transition: "opacity 420ms ease" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, perspective: 1500, perspectiveOrigin: "50% 50%", borderBottom: "1px solid color-mix(in srgb, var(--field-line) 14%, transparent)" }}>
                 <div style={{ position: "relative", width: "100%", height: 240, transformStyle: "preserve-3d" }}>
-                  {j.pages.map((pg: any, pi: number) => (
+                  {j.pages.map((pg, pi) => (
                     <div key={pi} style={{ position: "absolute", left: "50%", top: "50%", width: 250, height: 172, margin: "-86px 0 0 -125px", transform: `translate3d(${pg.x}, ${pg.y}, 0) rotateY(-62deg)`, transformOrigin: "50% 50%", border: "1px solid color-mix(in srgb, var(--field-ink) 20%, transparent)", background: "var(--field-bg-mid)", opacity: pg.op, transition: "opacity 420ms ease" }}>
                       <svg viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true" style={{ display: "block", width: "100%", height: "100%" }}>
                         {pg.plate.map((s: PlateSeg, si: number) => <path key={si} d={s.d} fill={s.fl} stroke={s.st} strokeWidth={s.w} opacity={s.o} />)}

@@ -21,6 +21,8 @@ Technology decisions are ADRs, design, spatial and material decisions are DDRs. 
 | [ADR-0007](adr/0007-group-code-by-feature.md) | Group code by feature, with a barrel only at a feature's index.ts | accepted | 2026-10-29 |
 | [ADR-0008](adr/0008-pnpm-workspaces-monorepo.md) | Use a pnpm workspaces monorepo without Turborepo or Nx | accepted | 2026-10-31 |
 | [ADR-0009](adr/0009-decision-records-madr.md) | Record decisions with MADR, separate ADR and DDR counters, never edit accepted records | accepted | 2026-10-31 |
+| [ADR-0010](adr/0010-scripts-live-with-what-they-operate-on.md) | Keep repo-level scripts in root scripts/, app scripts in their app | accepted | 2026-11-01 |
+| [ADR-0011](adr/0011-file-research-under-ontology-parts.md) | File research under ontology parts, with studies and a generated index | accepted | 2026-11-01 |
 
 ## Design decision records
 

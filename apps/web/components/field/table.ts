@@ -1,8 +1,8 @@
 // Table: setting objects aside, laying them out and binding them into a set.
 import type React from "react";
 import type Field from "./Field";
-import type { State, TableMetrics, Vals, Walk } from "./types";
-import { key, rand } from "./util";
+import type { State, TableMetrics, Walk } from "./types";
+import { key, rand, stop } from "./util";
 import { plate } from "./plate";
 
 // The table is a surface of some real size, and a plate is a real size on
@@ -68,17 +68,17 @@ export function toggleAside(f: Field, id: string) {
 // Dragging writes straight to the element and only commits on release, so a
 // re-render never fights the hand.
 export function tableDown(f: Field, id: string) {
-  return (e: any) => {
+  return (e: React.PointerEvent<HTMLElement>) => {
     const surf = document.querySelector<HTMLElement>('[data-role="tablesurface"]');
-    const el = e.currentTarget as HTMLElement;
+    const el = e.currentTarget;
     if (!surf || !el) return;
-    if (e.target && e.target.getAttribute && e.target.getAttribute("role") === "button") return;
+    if (e.target instanceof Element && e.target.getAttribute("role") === "button") return;
     const r = surf.getBoundingClientRect();
     const m = f.tableMetrics();
     const start = f.tablePos[id] || { x: 50, y: 50 };
     const ox = e.clientX, oy = e.clientY;
     let moved = false;
-    try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    try { el.setPointerCapture(e.pointerId); } catch {}
     el.style.zIndex = "6"; el.style.cursor = "grabbing";
     const move = (ev: PointerEvent) => {
       moved = true;
@@ -123,8 +123,8 @@ export function bindTable(f: Field) {
 }
 
 export function openFlat(f: Field, w: Walk) {
-  return (ev?: any) => {
-    if (ev && ev.stopPropagation) ev.stopPropagation();
+  return (ev?: { stopPropagation(): void }) => {
+    stop(ev);
     f.tablePos = Object.assign({}, f.tablePos, w.layout || {});
     const m = f.tableMetrics();
     (w.steps || []).forEach((id, i) => {
@@ -134,40 +134,44 @@ export function openFlat(f: Field, w: Walk) {
   };
 }
 
-export function tableVals(f: Field, st: State, out: Vals): void {
-  out.table = st.tableOpen;
-  out.tableLabel = st.table.length ? "TABLE " + String(st.table.length).padStart(2, "0") : "TABLE —";
-  out.tableOn = st.table.length > 0;
-  out.onTable = () => { f.collapse(); f.setState({ tableOpen: true, plan: false, catalogue: false, compose: null, view: null }); };
-  out.onTableKey = key(() => out.onTable());
-  out.onCloseTable = () => f.setState({ tableOpen: false });
-  out.onCloseTableKey = key(out.onCloseTable);
-  out.tableEmpty = st.table.length === 0;
-  out.tableHint = st.tableNote
-    ? st.tableNote + " · bind it or put something back"
-    : st.table.length ? "drag them into relation · reading order becomes the route" : "nothing set aside yet";
-  out.tableItems = st.table.map(id => {
+export function tableVals(f: Field, st: State) {
+  const onTable = () => { f.collapse(); f.setState({ tableOpen: true, plan: false, catalogue: false, compose: null, view: null }); };
+  const onCloseTable = () => f.setState({ tableOpen: false });
+  const onAside = () => { if (st.open) f.toggleAside(st.open); };
+  const clearTable = () => f.setState({ table: [], bindName: "", tableNote: null });
+  const tableItems = st.table.map(id => {
     const o = f.byId(id), p = f.tablePos[id] || { x: 50, y: 50 };
-    const off = (ev?: any) => { if (ev && ev.stopPropagation) ev.stopPropagation(); f.toggleAside(id); };
+    const off = (ev?: { stopPropagation(): void }) => { stop(ev); f.toggleAside(id); };
     return {
       id, title: o.t, stamp: o.k + (o.y ? " · " + o.y : ""), plate: plate(o),
       x: p.x.toFixed(2) + "%", y: p.y.toFixed(2) + "%",
       down: f.tableDown(id), off, offKey: key(() => off())
     };
   });
-  out.bindName = st.bindName;
-  out.bindColor = st.table.length ? "var(--field-accent)" : "color-mix(in srgb, var(--field-mist) 35%, transparent)";
-  out.onBindName = (e: React.ChangeEvent<HTMLInputElement>) => f.setState({ bindName: e.target.value });
-  out.onBind = f.bindTable;
-  out.onBindKey = key(() => f.bindTable());
-  out.onClearTable = () => f.setState({ table: [], bindName: "", tableNote: null });
-  out.onClearTableKey = key(() => f.setState({ table: [], bindName: "", tableNote: null }));
   const asideOn = !!(st.open && st.table.indexOf(st.open) > -1);
-  out.asideLabel = st.tableNote ? "the table is full" : asideOn ? "on the table" : "set it aside";
-  out.asideColor = st.tableNote ? "var(--field-walk)" : asideOn ? "var(--field-accent)" : "color-mix(in srgb, var(--field-mist) 85%, transparent)";
-  out.onAside = () => { if (st.open) f.toggleAside(st.open); };
-  out.onAsideKey = key(() => out.onAside());
-  out.focusAside = st.tableNote ? "table full" : st.focus ? (st.table.indexOf(st.focus.id) > -1 ? "on the table" : "set aside") : "";
-  out.onFocusAside = (ev?: any) => { if (ev && ev.stopPropagation) ev.stopPropagation(); if (st.focus) f.toggleAside(st.focus.id); };
-  out.onFocusAsideKey = key(() => { if (f.state.focus) f.toggleAside(f.state.focus.id); });
+  return {
+    table: st.tableOpen,
+    tableLabel: st.table.length ? "TABLE " + String(st.table.length).padStart(2, "0") : "TABLE —",
+    tableOn: st.table.length > 0,
+    onTable, onTableKey: key(onTable),
+    onCloseTable, onCloseTableKey: key(onCloseTable),
+    tableEmpty: st.table.length === 0,
+    tableHint: st.tableNote
+      ? st.tableNote + " · bind it or put something back"
+      : st.table.length ? "drag them into relation · reading order becomes the route" : "nothing set aside yet",
+    tableItems,
+    bindName: st.bindName,
+    bindColor: st.table.length ? "var(--field-accent)" : "color-mix(in srgb, var(--field-mist) 35%, transparent)",
+    onBindName: (e: React.ChangeEvent<HTMLInputElement>) => f.setState({ bindName: e.target.value }),
+    onBind: f.bindTable,
+    onBindKey: key(() => f.bindTable()),
+    onClearTable: clearTable,
+    onClearTableKey: key(clearTable),
+    asideLabel: st.tableNote ? "the table is full" : asideOn ? "on the table" : "set it aside",
+    asideColor: st.tableNote ? "var(--field-walk)" : asideOn ? "var(--field-accent)" : "color-mix(in srgb, var(--field-mist) 85%, transparent)",
+    onAside, onAsideKey: key(onAside),
+    focusAside: st.tableNote ? "table full" : st.focus ? (st.table.indexOf(st.focus.id) > -1 ? "on the table" : "set aside") : "",
+    onFocusAside: (ev?: { stopPropagation(): void }) => { stop(ev); if (st.focus) f.toggleAside(st.focus.id); },
+    onFocusAsideKey: key(() => { if (f.state.focus) f.toggleAside(f.state.focus.id); })
+  };
 }

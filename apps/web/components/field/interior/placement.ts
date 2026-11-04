@@ -1,4 +1,6 @@
-// Interior placement: puts board pieces on a grid of square modules — authored layout items, deprecated at fractions, then deterministic first-fit packing.
+// Interior placement: puts board pieces on a grid of square modules — radial packing around the hero when nothing is
+// authored; otherwise authored layout items stay where they are and the rest pack radially around them (first-fit
+// when an entry frame is authored), after the deprecated at fractions.
 import type { EntityLayout, LayoutItem } from "@/lib/field-data";
 import { clampN, type Box, type Item, type Layout } from "./state";
 
@@ -13,9 +15,10 @@ const AT_ROWS = 14;
 
 type Cell = { col: number; row: number; cols: number; rows: number; z?: number; crop: boolean };
 
-// hero is the key of the piece that takes the slot beside the title; items arrive in default reading order.
+// hero is the key of the piece that opens the board; items arrive in default reading order. The text overlay sits
+// over the board, so the grid does not keep clear of it.
 export function resolve(lay: EntityLayout | undefined, items: Item[], W: number, H: number, hero: string | null): Layout {
-  const narrow = W < NARROW, ins = narrow ? INSET.narrow : INSET.wide, per = narrow ? 4 : 12;
+  const narrow = W < NARROW, per = narrow ? 4 : 12, ins = narrow ? INSET.narrow : INSET.wide;
   const unit = (W - ins.l - ins.r) / per, gut = unit * 0.14;
   const cols = narrow ? 4 : clampN(lay?.board?.cols ?? BOARD_COLS, 12, 48);
   const authored = new Map<string, LayoutItem>((lay?.items || []).map(a => [a.ref, a]));
@@ -26,6 +29,8 @@ export function resolve(lay: EntityLayout | undefined, items: Item[], W: number,
   ];
 
   const cells: Record<string, Cell> = {};
+  // radial is set when the board is packed around the hero; centre is then the hero's key, which the view opens on
+  let radial = false, centre: string | null = null;
   const taken = new Set<string>(), reserved = new Set<string>();
   const rowsOf = (it: Item, span: number) => Math.max(1, Math.ceil((it.tall(span * unit - gut) + gut) / unit));
   const mark = (set: Set<string>, c: number, r: number, w: number, h: number) => {
@@ -46,6 +51,34 @@ export function resolve(lay: EntityLayout | undefined, items: Item[], W: number,
     mark(taken, col, row, span, rows);
   };
 
+  // Radial packing: pieces ring outward from (cx, cy), nearest first, each piece's preferred direction stepped by the
+  // golden angle so consecutive pieces land on different sides. Deterministic; distances are stretched vertically by
+  // the viewport's aspect so the rings fill a wide screen. Unbounded (centred coordinates) or inside the board's columns.
+  const GOLD = Math.PI * (3 - Math.sqrt(5)), ASPECT = W / H;
+  const radialFill = (cx: number, cy: number, bounded: boolean) => {
+    const clear = (c: number, r: number, w: number, h: number) => {
+      for (let y = r - 1; y < r + h + 1; y++) for (let x = c - 1; x < c + w + 1; x++) if (taken.has(x + "," + y)) return false;
+      return true;
+    };
+    const lastRow = Math.max(0, ...Object.values(cells).map(c => c.row + c.rows));
+    let n = 0;
+    order.forEach(it => {
+      if (cells[it.key]) return;
+      const span = Math.min(it.cols, 12), rows = rowsOf(it, span), want = (n++ * GOLD) % (2 * Math.PI);
+      const [cLo, cHi, rLo, rHi] = bounded ? [2, cols - span + 1, 2, lastRow + 40] : [-60, 60, -40, 40];
+      let best: [number, number] | null = null, bestScore = Infinity;
+      for (let r = rLo; r <= rHi; r++) for (let c = cLo; c <= cHi; c++) {
+        const dx = c + span / 2 - cx, dy = (r + rows / 2 - cy) * ASPECT, d = Math.hypot(dx, dy);
+        if (d >= bestScore) continue;
+        let da = Math.abs(Math.atan2(dy, dx) + Math.PI - want) % (2 * Math.PI);
+        if (da > Math.PI) da = 2 * Math.PI - da;
+        const score = d * (1 + 0.5 * da / Math.PI);
+        if (score < bestScore && clear(c, r, span, rows)) { best = [c, r]; bestScore = score; }
+      }
+      if (best) put(it, best[0], best[1], span);
+    });
+  };
+
   if (narrow) {
     order.forEach(it => {
       const n = authored.get(it.ref)?.narrow;
@@ -55,7 +88,7 @@ export function resolve(lay: EntityLayout | undefined, items: Item[], W: number,
     order.forEach(it => {
       if (cells[it.key]) return;
       const a = authored.get(it.ref);
-      const lead = it.ref === "title" || it.ref === "meta" || it.key === hero;
+      const lead = it.layer === "float" || it.key === hero;
       const span = lead || (a?.w ?? it.cols) >= 6 ? 4 : 3;
       // three-wide pieces alternate between the left and right edge so the stack reads as a column, not a list
       const col = span === 4 ? 1 : side++ % 2 ? 2 : 1;
@@ -65,6 +98,15 @@ export function resolve(lay: EntityLayout | undefined, items: Item[], W: number,
       put(it, col, r, span);
       cursor = r + rows;
     });
+  } else if (!(lay?.items || []).some(a => a.col && a.row) && !lay?.entry) {
+    radial = true;
+    const lead = items.find(i => i.key === hero) || order[0];
+    if (lead) { const sp = Math.min(lead.cols, 12), rs = rowsOf(lead, sp); put(lead, -Math.floor(sp / 2), -Math.floor(rs / 2), sp); }
+    radialFill(0, 0, false);
+    // shift to the grid's usual origin: column and row 1 stay empty as the board's margin
+    const cs = Object.values(cells), dc = 2 - Math.min(...cs.map(c => c.col)), dr = 2 - Math.min(...cs.map(c => c.row));
+    cs.forEach(c => { c.col += dc; c.row += dr; });
+    centre = lead ? lead.key : null;
   } else {
     order.forEach(it => {
       const a = authored.get(it.ref);
@@ -79,18 +121,25 @@ export function resolve(lay: EntityLayout | undefined, items: Item[], W: number,
       const row = clampN(Math.round(it.at[1] * AT_ROWS - rows / 2) + 1, 1, Math.max(1, AT_ROWS - rows + 1));
       if (free(col, row, span, rows, 0)) put(it, col, row, span);
     });
-    const title = items.find(i => i.ref === "title"), meta = items.find(i => i.ref === "meta"), lead = items.find(i => i.key === hero);
-    const settle = (it: Item | undefined, col: number, row: number, span: number) => {
-      if (it && !cells[it.key] && free(col, row, span, rowsOf(it, span), 0)) put(it, col, row, span);
-    };
-    settle(title, 2, 2, title?.cols ?? 6);
-    const t = title && cells[title.key];
-    if (t) settle(meta, t.col, t.row + t.rows, meta?.cols ?? 5);
-    settle(lead, 8, 2, 5);
+    const lead = items.find(i => i.key === hero);
+    if (lead && !cells[lead.key] && free(2, 2, lead.cols, rowsOf(lead, lead.cols), 0)) put(lead, 2, 2, lead.cols);
 
-    // The entry frame is held back from packing, so what reaches past it is always outside it.
-    const ec = lay?.entry?.col ?? 1, er = lay?.entry?.row ?? 1;
-    mark(reserved, ec, er, 12, ENTRY_ROWS);
+    // Pinned pieces stay where they are; the rest ring outward from the hero, or from the pinned pieces' middle when the
+    // hero is itself pinned elsewhere or does not fit. An authored entry frame keeps the first-fit packing below.
+    const placed = Object.values(cells);
+    if (!lay?.entry && placed.length) {
+      const hc = lead && cells[lead.key];
+      const box = hc || {
+        col: Math.min(...placed.map(c => c.col)), row: Math.min(...placed.map(c => c.row)),
+        cols: Math.max(...placed.map(c => c.col + c.cols)) - Math.min(...placed.map(c => c.col)),
+        rows: Math.max(...placed.map(c => c.row + c.rows)) - Math.min(...placed.map(c => c.row)),
+      };
+      radialFill(box.col + box.cols / 2, box.row + box.rows / 2, true);
+    }
+
+    // An authored entry frame is held back from packing, so what reaches past it is always outside it. Without one,
+    // packing fills the first screen beside the hero.
+    if (lay?.entry) mark(reserved, lay.entry.col ?? 1, lay.entry.row ?? 1, 12, ENTRY_ROWS);
     // column 1 stays empty as the board's left margin; the right one is added to the board width below
     const starts = (span: number) => {
       const out: number[] = [];
@@ -111,7 +160,7 @@ export function resolve(lay: EntityLayout | undefined, items: Item[], W: number,
   const all = Object.values(cells);
   const lastCol = Math.max(per, ...all.map(c => c.col + c.cols - 1));
   // an unauthored board is only as wide as it needs to be, so a short entity has no empty screen to pan to
-  const boardCols = narrow ? 4 : lay?.board?.cols ? cols : lastCol + (lastCol > per ? 1 : 0);
+  const boardCols = narrow ? 4 : radial ? lastCol + 1 : lay?.board?.cols ? cols : lastCol + (lastCol > per ? 1 : 0);
   const visRows = Math.floor((H - ins.t - ins.b) / unit);
   const boardRows = Math.max(lay?.board?.rows ?? 0, visRows, ...all.map(c => c.row + c.rows));
   const pos: Record<string, Box> = {};
@@ -124,10 +173,20 @@ export function resolve(lay: EntityLayout | undefined, items: Item[], W: number,
     };
   });
   const ec = narrow ? 1 : lay?.entry?.col ?? 1, er = narrow ? 1 : lay?.entry?.row ?? 1;
+  const c0 = centre ? pos[centre] : null;
+  if (c0) {
+    // the opening unfolds from the hero: about 40 ms per ring of four modules, capped at 400 ms, each piece arriving
+    // from 12 px nearer the centre
+    const hx = c0.x + c0.w / 2, hy = c0.y + c0.h / 2;
+    Object.values(pos).forEach(b => {
+      const dx = b.x + b.w / 2 - hx, dy = b.y + b.h / 2 - hy, d = Math.hypot(dx, dy);
+      b.enter = { dl: Math.min(400, Math.floor(d / (unit * 4)) * 40), ox: d ? (-dx / d) * 12 : 0, oy: d ? (-dy / d) * 12 : 0 };
+    });
+  }
   return {
     w: narrow ? W : ins.l + boardCols * unit + ins.r,
-    h: Math.max(H, ins.t + boardRows * unit + ins.b),
-    focus: { x: (ec - 1) * unit + W / 2, y: (er - 1) * unit + H / 2 },
+    h: radial ? ins.t + boardRows * unit + ins.b : Math.max(H, ins.t + boardRows * unit + ins.b),
+    focus: c0 ? { x: c0.x + c0.w / 2, y: c0.y + c0.h / 2 } : { x: (ec - 1) * unit + W / 2, y: (er - 1) * unit + H / 2 },
     pos,
   };
 }

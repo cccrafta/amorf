@@ -19,6 +19,13 @@ export function wrap(v: number, m: number): number {
   return w;
 }
 
-export function key(fn: (...args: any[]) => void) {
-  return (e: React.KeyboardEvent | KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fn(); } };
+export type KeyHandler = (e: React.KeyboardEvent | KeyboardEvent) => void;
+
+export function key(fn: () => void): KeyHandler {
+  return (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fn(); } };
+}
+
+// Click handlers are also called with no event by key() wrappers, so the event is optional.
+export function stop(ev?: { stopPropagation(): void }) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
 }

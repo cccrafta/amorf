@@ -1,7 +1,7 @@
 ---
 title: Folder structure
-updated: 2026-10-31
-last_verified: 2026-10-31
+updated: 2026-11-01
+last_verified: 2026-11-01
 status: monorepo layout and current state of apps/web documented; target for the remaining features proposed, not yet applied
 ---
 
@@ -18,13 +18,23 @@ apps/
   web/        The site: Next.js app, package @amorf/web. Everything below "Inside apps/web" applies here.
   api/        Future backend app. Not created yet.
 packages/     Shared workspace packages (@amorf/*). Empty until a second consumer exists; see packages/README.md.
-research/     Theory, experiments and portfolio. See research/README.md.
+research/     Theory (with the ontology), studies, experiments and portfolio. See research/README.md.
+scripts/      Repo-level Node scripts: tooling for folders no app owns (scripts/research-index.mjs).
 docs/         This vault: conventions, decisions (ADR and DDR), design notes, templates, deployment.
 ```
 
-Root files: `package.json` (scripts delegate to `@amorf/web`), `pnpm-workspace.yaml`, `tsconfig.base.json`, `.gitignore`, `README.md`, `AGENTS.md`, `CLAUDE.md`. App configuration (Next, Wrangler, ESLint, PostCSS, env files) lives in the app that uses it.
+Root files: `package.json` (scripts delegate to `@amorf/web`, except `research:*`, which run `scripts/research-index.mjs`), `pnpm-workspace.yaml`, `tsconfig.base.json`, `.gitignore`, `README.md`, `AGENTS.md`, `CLAUDE.md`. App configuration (Next, Wrangler, ESLint, PostCSS, env files) lives in the app that uses it.
 
 Place new things by what they are: code in an app, shared code in a package only once two apps need it, thinking in `research/`, reasoning in `docs/decisions/`.
+
+## Scripts: with what they read and write
+
+A script lives with the thing it operates on ([ADR-0010](../decisions/adr/0010-scripts-live-with-what-they-operate-on.md)):
+
+- **App scripts** stay in the app: `apps/web/scripts/entities.mjs` reads the app's content and env, so it belongs to `@amorf/web`.
+- **Repo-level scripts** go in root `scripts/`: tooling for `research/`, `docs/` or the repo as a whole. Name by topic, `scripts/<topic>.mjs`; the root command is `<topic>:<verb>` (`research:index`).
+- Plain Node, no dependencies, so the root never needs its own `node_modules`. A helper shared by two root scripts goes in `scripts/lib/`, not `packages/` (packages are for code apps import).
+- Never put code in `research/` or `docs/`: those hold thinking and reasoning, and their generated files (such as `research/INDEX.md`) are output, not source.
 
 ## The rule: group by feature, not by kind of file
 

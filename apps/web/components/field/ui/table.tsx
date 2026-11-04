@@ -12,7 +12,7 @@ export function renderTable(v: V) {
         <div role="button" tabIndex={0} onClick={v.onCloseTable} onKeyDown={v.onCloseTableKey} className="field-label field-hover-accent" style={{ cursor: "pointer", outline: "none", fontSize: 9.5, color: "rgba(var(--field-mute-rgb), 0.8)", transition: "color 400ms ease" }}>back to the field</div>
       </div>
       <div data-role="tablesurface" style={{ flex: "1 1 auto", position: "relative", minHeight: 0, margin: "clamp(12px, 2vh, 26px) clamp(20px, 4vw, 56px)", border: "1px solid color-mix(in srgb, var(--field-line) 12%, transparent)", background: "color-mix(in srgb, var(--field-ink) 1.2%, transparent)", touchAction: "none", overflow: "hidden" }}>
-        {v.tableItems.map((it: any) => (
+        {v.tableItems.map(it => (
           <div key={it.id} onPointerDown={it.down} style={{ position: "absolute", left: it.x, top: it.y, width: "clamp(132px, 12vw, 172px)", transform: "translate(-50%, -50%)", cursor: "grab", touchAction: "none", userSelect: "none" }}>
             <svg viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true" style={{ display: "block", width: "100%", height: "clamp(88px, 8vw, 114px)", border: "1px solid color-mix(in srgb, var(--field-line) 42%, transparent)", background: "color-mix(in srgb, var(--field-ink) 5%, transparent)" }}>
               {it.plate.map((s: PlateSeg, si: number) => <path key={si} d={s.d} fill={s.fl} stroke={s.st} strokeWidth={s.w} opacity={s.o} />)}

@@ -1,7 +1,7 @@
 ---
 title: Entities and entity.json
-updated: 2026-10-31
-last_verified: 2026-10-31
+updated: 2026-11-03
+last_verified: 2026-11-03
 status: entities in apps/web/content/entities/, synced to R2 with entities:sync, loaded by the app at build time (apps/web/lib/data/entities.ts)
 ---
 
@@ -85,7 +85,7 @@ Required: `schema`, `id`, `title`, `kind`. Everything else is optional: **omit o
 | `links` | `{ label, url }[]` | External references (Vimeo, Wikipedia, an archive). |
 | `related` | `{ id, reason }[]` | Other entities this one connects to, with a short reason. `id` must be another entity's id. Replaces the hand-kept association list. |
 | `media` | object[] | The entity's media, in display order (see below). |
-| `layout` | object | Authored placement in the entity view: `board`, `entry`, and `items` of `{ ref, col, row, w, h?, z?, narrow? }` on a 12-column grid of square modules. `ref` is `title`, `meta`, `p:<n>` or `media:<file>`. Omit it, or list only some pieces, and the rest are packed deterministically. Rules and defaults: [design/entity-view.md](../design/entity-view.md). |
+| `layout` | object | Authored placement in the entity view: `board`, `entry`, and `items` of `{ ref, col, row, w, h?, z?, narrow? }` on a 12-column grid of square modules. `ref` is `media:<file>`; `title`, `meta` and `p:<n>` are ignored with a warning, because the entity template puts text in the float column. Omit it, or list only some pieces, and the rest are packed deterministically. Rules and defaults: [design/entity-view.md](../design/entity-view.md). |
 
 ### `media` items
 
@@ -104,7 +104,7 @@ Each item has exactly one of `file` or `embed`. Fields follow schema.org `MediaO
 | `original` | migration | Source path inside the entity folder, `originals/…`. |
 | `poster` | you | Poster image for a video or embed. |
 | `focal` | you | `[x, y]` (0–1) point to keep in view when cropped. |
-| `at` | you | Deprecated: use `layout.items`. `[x, y]` (0–1) placement, read only when `layout.items` does not list the file; `entities:check` warns. |
+| `at` | you | Deprecated: use `layout.items`. `[x, y]` (0–1) placement. Honoured only when some `layout.items` entry is authored with `col` and `row` and the file is not listed; ignored by the default radial packing. Not for new content; `entities:check` warns. |
 | `mime`, `bytes`, `width`, `height`, `duration` | `entities:probe` | Generated from the file; never typed. |
 
 External video example: `{ "embed": { "provider": "vimeo", "url": "https://vimeo.com/185081713" }, "poster": "talk-poster.jpg", "kind": "video", "caption": "…" }`.

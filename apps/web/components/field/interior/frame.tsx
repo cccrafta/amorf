@@ -1,11 +1,16 @@
-// Interior frame: the fixed layer over the board — header, the four neighbour labels, the tools bar and the drawer. It never pans.
+// Interior frame: the fixed layer over the board — the menu button and its popup, the four neighbour labels and the drawer. It never pans.
 import React from "react";
-import type { V, Vals, NoteMark } from "../types";
+import type { V, NoteMark } from "../types";
+import type { Edge, InteriorView } from "./layout";
+import { TRACES_ENABLED } from "../notes";
+import { key } from "../util";
+import { scroll, setScroll, resetScroll, SCROLL_RANGES } from "../scroll";
+
+type Note = InteriorView["notes"][number];
 
 const hair = "1px solid color-mix(in srgb, var(--field-line) 22%, transparent)";
 const panel = "color-mix(in srgb, var(--field-bg) 94%, transparent)";
 const press: React.CSSProperties = { cursor: "pointer", outline: "none", pointerEvents: "auto" };
-const BAR = { wide: 44, narrow: 84 };
 
 // Each edge's label sits at that edge's midpoint inside the safe inset; left and right run vertically so they take no width.
 const SPOT: Record<string, React.CSSProperties> = {
@@ -22,9 +27,9 @@ const LINE: Record<string, React.CSSProperties> = {
   right: { right: 0, top: 0, bottom: 0, width: 1, transform: "scaleY(0)" },
 };
 
-// On narrow screens the header row is too short to share, so the top label drops below it.
-function renderEdge(e: Vals, bar: number, narrow: boolean) {
-  const spot = e.dir === "down" ? { ...SPOT.down, bottom: bar + 8 } : e.dir === "up" && narrow ? { ...SPOT.up, top: 34 } : SPOT[e.dir];
+// On narrow screens the menu button takes the top row, so the top label drops below it.
+function renderEdge(e: Edge, narrow: boolean) {
+  const spot = e.dir === "down" ? { ...SPOT.down, bottom: 10 } : e.dir === "up" && narrow ? { ...SPOT.up, top: 34 } : SPOT[e.dir];
   return (
     <React.Fragment key={e.dir}>
       <div data-role={"edgeline-" + e.dir} aria-hidden="true" style={{ position: "absolute", ...LINE[e.dir], transformOrigin: "50% 50%", background: "var(--field-accent)", pointerEvents: "none" }} />
@@ -44,7 +49,7 @@ function renderEdge(e: Vals, bar: number, narrow: boolean) {
   );
 }
 
-function renderNote(d: Vals) {
+function renderNote(d: Note) {
   return (
     <div key={d.id} role="button" tabIndex={0} onMouseEnter={d.enter} onMouseLeave={d.leave} onFocus={d.enter} onBlur={d.leave} onClick={d.open} onKeyDown={d.key} className="field-hover-opacity" style={{ display: "flex", flexDirection: "column", gap: 7, padding: "14px 0", borderTop: hair, ...press, opacity: d.on ? 1 : 0.78, transition: "opacity 400ms ease" }}>
       {d.sheet && (
@@ -61,12 +66,12 @@ function renderNote(d: Vals) {
   );
 }
 
-function renderTraces(v: V, it: Vals) {
+function renderTraces(v: V, it: InteriorView) {
   return (
     <>
       <div style={{ position: "relative", aspectRatio: "3 / 2", border: hair, background: "color-mix(in srgb, var(--field-ink) 3%, transparent)" }}>
         {it.thumbCss && <div aria-hidden="true" style={{ position: "absolute", inset: 0, backgroundImage: it.thumbCss, backgroundSize: "cover", backgroundPosition: "center", opacity: 0.42 }} />}
-        {v.layers.map((l: Vals, li: number) => (
+        {v.layers.map((l, li) => (
           <svg key={li} viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: l.op, transition: "opacity 420ms ease" }}>
             {l.marks.map((s: NoteMark, si: number) => <path key={si} d={s.d} fill="none" stroke={l.ink} strokeWidth={s.w} strokeLinecap="round" />)}
           </svg>
@@ -81,7 +86,7 @@ function renderTraces(v: V, it: Vals) {
   );
 }
 
-function renderRelated(v: V, it: Vals) {
+function renderRelated(v: V, it: InteriorView) {
   return (
     <>
       {it.passing && (
@@ -90,7 +95,7 @@ function renderRelated(v: V, it: Vals) {
           <div className="field-body" style={{ marginTop: 5, fontSize: 14, lineHeight: 1.4 }}>{it.passing.name}</div>
         </div>
       )}
-      {it.assoc.map((a: Vals, i: number) => (
+      {it.assoc.map((a, i) => (
         <div key={i} role="button" tabIndex={0} onClick={a.go} onKeyDown={a.key} className="field-hover-padleft" style={{ display: "flex", alignItems: "baseline", gap: 12, padding: "12px 4px 12px 0", borderTop: hair, ...press, transition: "padding-left 500ms cubic-bezier(0.22,1,0.36,1), background 500ms ease" }}>
           <span className="field-label" style={{ flex: "0 0 auto", fontSize: 10 }}>↓</span>
           <span style={{ flex: "1 1 auto", minWidth: 0 }}>
@@ -107,12 +112,12 @@ function renderRelated(v: V, it: Vals) {
   );
 }
 
-function renderFacts(it: Vals) {
+function renderFacts(it: InteriorView) {
   return (
     <>
       {/* one Fragment per fact: each pair must land as two direct grid items of the "auto 1fr" grid */}
       <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "10px 18px", alignItems: "baseline" }}>
-        {it.facts.map((f: Vals) => (
+        {it.facts.map(f => (
           <React.Fragment key={f.k}>
             <div className="field-label" style={{ fontSize: 9 }}>{f.k}</div>
             <div className="field-body" style={{ fontSize: 14, lineHeight: 1.4 }}>{f.v}</div>
@@ -121,7 +126,7 @@ function renderFacts(it: Vals) {
       </div>
       {it.links.length > 0 && (
         <div style={{ marginTop: 22, borderTop: hair }}>
-          {it.links.map((l: Vals) => (
+          {it.links.map(l => (
             <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="field-label field-hover-mist" style={{ display: "block", padding: "11px 0", borderBottom: hair, fontSize: 9.5, textDecoration: "none", ...press }}>↗ {l.label}</a>
           ))}
         </div>
@@ -130,42 +135,59 @@ function renderFacts(it: Vals) {
   );
 }
 
-// Order is the Tab order the design asks for: neighbour labels, then the bar, then the drawer, then the header.
-export function renderFrame(v: V) {
-  const it = v.interior, bar = it.narrow ? BAR.narrow : BAR.wide;
-  const aside = (
-    <span role="button" tabIndex={0} onClick={v.onAside} onKeyDown={v.onAsideKey} className="field-label field-hover-accent" style={{ fontSize: 9.5, color: v.asideColor, whiteSpace: "nowrap", ...press, transition: "color 400ms ease" }}>{v.asideLabel}</span>
-  );
-  const elsewhere = (
-    <span role="button" tabIndex={0} onClick={v.onElsewhere} onKeyDown={v.onElsewhereKey} className="field-label field-hover-mist" style={{ fontSize: 9.5, whiteSpace: "nowrap", ...press, transition: "color 400ms ease" }}>⤳ somewhere unrelated</span>
+// Everything the old footer and header held lives in one popup behind the top-left button: the drawer tabs, the walk
+// control, "somewhere unrelated", "leave a trace" and close. Esc still closes; see escInterior.
+function renderMenu(v: V, it: InteriorView) {
+  const pick = (fn?: () => void) => () => { it.closeMenu(); fn?.(); };
+  const row = (label: React.ReactNode, fn: (() => void) | undefined, color?: string, id?: string) => (
+    <span key={id ?? String(label)} role="menuitem" tabIndex={0} onClick={pick(fn)} onKeyDown={key(pick(fn))} className="field-label field-hover-accent"
+      style={{ display: "flex", justifyContent: "space-between", gap: 18, padding: "11px 0", borderTop: hair, fontSize: 9.5, whiteSpace: "nowrap", color, ...press, transition: "color 400ms ease" }}>{label}</span>
   );
   return (
-    <>
-      <div aria-hidden="true" style={{ position: "absolute", left: 0, right: 0, top: 0, height: 64, pointerEvents: "none", background: "linear-gradient(" + panel + ", transparent)" }} />
-      {it.edges.map((e: Vals) => renderEdge(e, bar, it.narrow))}
+    <div data-role="menu" data-nodrag="" role="menu" aria-label="entity options"
+      style={{ position: "absolute", left: "clamp(12px, 2.4vw, 34px)", top: 44, width: 240, padding: "4px 16px 6px", border: hair, background: panel, backdropFilter: "blur(6px)", cursor: "default", zIndex: 2 }}>
+      {it.tabs.map(t => row(<><span>{t.id}</span>{t.n && <span style={{ opacity: 0.7 }}>{t.n}</span>}</>, t.go, t.on ? "var(--field-accent)" : undefined, t.id))}
+      {row(v.asideLabel, v.onAside, v.asideColor, "aside")}
+      {row("⤳ somewhere unrelated", v.onElsewhere, undefined, "elsewhere")}
+      {TRACES_ENABLED && row("+ leave a trace", v.onCompose, undefined, "compose")}
+      {row("scroll feel", it.onScrollPanel, it.scrollPanel ? "var(--field-accent)" : undefined, "scroll")}
+      {row(<><span>close</span><span style={{ opacity: 0.7 }}>esc</span></>, it.onClose, undefined, "close")}
+    </div>
+  );
+}
 
-      <div data-nodrag="" style={{ position: "absolute", left: 0, right: 0, bottom: 0, minHeight: bar, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "10px 22px", padding: it.narrow ? "10px 16px" : "0 clamp(18px, 3vw, 42px)", borderTop: hair, background: panel, cursor: "default" }}>
-        <div role="tablist" style={{ display: "flex", gap: 22 }}>
-          {it.tabs.map((t: Vals) => (
-            <span key={t.id} role="tab" aria-selected={t.on} tabIndex={0} onClick={t.go} onKeyDown={t.key} className="field-label field-hover-accent"
-              style={{ fontSize: 9.5, paddingBottom: 3, borderBottom: "1px solid " + (t.on ? "var(--field-accent)" : "transparent"), whiteSpace: "nowrap", ...press, transition: "color 400ms ease, border-color 400ms ease" }}>
-              {t.id}{t.n && <span style={{ marginInlineStart: 7, opacity: 0.7 }}>{t.n}</span>}
-            </span>
-          ))}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 22, flex: it.narrow ? "1 1 100%" : "0 0 auto" }}>
-          <span role="button" tabIndex={0} onClick={v.onCompose} onKeyDown={v.onComposeKey} className="field-label field-hover-bg"
-            style={{ padding: "7px 12px", border: "1px solid color-mix(in srgb, var(--field-accent) 40%, transparent)", fontSize: 9.5, whiteSpace: "nowrap", textAlign: "center", flex: it.narrow ? "1 1 auto" : undefined, ...press, transition: "background 500ms ease" }}>+ leave a trace</span>
-          {!it.narrow && aside}
-          {!it.narrow && elsewhere}
-        </div>
+// Live scroll tuning (../scroll.ts): each slider writes the shared values, which input and physics read per event.
+function renderScrollPanel(it: InteriorView) {
+  return (
+    <div data-role="drawer" data-nodrag="" role="dialog" aria-label="scroll feel"
+      style={{ position: "absolute", left: "clamp(12px, 2.4vw, 34px)", top: 44, width: 280, padding: "12px 16px 14px", border: hair, background: panel, backdropFilter: "blur(6px)", cursor: "default", zIndex: 2, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div className="field-label" style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5 }}>
+        <span>scroll feel</span>
+        <span role="button" tabIndex={0} aria-label="close" onClick={it.onScrollPanel} onKeyDown={it.onScrollPanelKey} className="field-hover-accent" style={press}>×</span>
       </div>
+      {SCROLL_RANGES.map(r => (
+        <label key={r.k} className="field-label" style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 8.5 }}>
+          <span style={{ display: "flex", justifyContent: "space-between" }}><span>{r.label}</span><span>{scroll[r.k]}</span></span>
+          <input type="range" min={r.min} max={r.max} step={r.step} value={scroll[r.k]} style={{ accentColor: "var(--field-accent)", pointerEvents: "auto" }}
+            onChange={e => { setScroll({ [r.k]: Number(e.target.value) }); it.rerender(); }} />
+        </label>
+      ))}
+      <span role="button" tabIndex={0} onClick={() => { resetScroll(); it.rerender(); }} onKeyDown={key(() => { resetScroll(); it.rerender(); })} className="field-label field-hover-accent" style={{ alignSelf: "flex-start", fontSize: 9, ...press }}>reset to defaults</span>
+    </div>
+  );
+}
+
+// Order is the Tab order: neighbour labels, then the drawer, then the menu button and its popup.
+export function renderFrame(v: V, it: InteriorView) {
+  return (
+    <>
+      {it.edges.map(e => renderEdge(e, it.narrow))}
 
       {it.drawer && (
         <div data-role="drawer" data-nodrag="" role="dialog" aria-label={it.drawer}
           style={it.narrow
-            ? { position: "absolute", left: 0, right: 0, bottom: bar, height: "70%", borderTop: hair, background: panel, overflowY: "auto", overscrollBehavior: "contain", touchAction: "pan-y", cursor: "default", padding: "16px 18px 22px" }
-            : { position: "absolute", right: 0, top: 56, bottom: bar, width: 380, borderLeft: hair, background: panel, overflowY: "auto", overscrollBehavior: "contain", touchAction: "pan-y", cursor: "default", padding: "18px 24px 28px" }}>
+            ? { position: "absolute", left: 0, right: 0, bottom: 0, height: "70%", borderTop: hair, background: panel, overflowY: "auto", overscrollBehavior: "contain", touchAction: "pan-y", cursor: "default", padding: "16px 18px 22px" }
+            : { position: "absolute", right: 0, top: 0, bottom: 0, width: 380, borderLeft: hair, background: panel, overflowY: "auto", overscrollBehavior: "contain", touchAction: "pan-y", cursor: "default", padding: "18px 24px 28px" }}>
           <div className="field-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 18, fontSize: 9.5 }}>
             <span>{it.drawer === "traces" ? "traces left here" : it.drawer}</span>
             <span role="button" tabIndex={0} aria-label="close drawer" onClick={it.onDrawerClose} onKeyDown={it.onDrawerCloseKey} className="field-hover-accent" style={{ ...press, transition: "color 400ms ease" }}>×</span>
@@ -173,16 +195,15 @@ export function renderFrame(v: V) {
           {it.drawer === "facts" && renderFacts(it)}
           {it.drawer === "traces" && renderTraces(v, it)}
           {it.drawer === "related" && renderRelated(v, it)}
-          {it.narrow && <div style={{ display: "flex", justifyContent: "space-between", gap: 18, marginTop: 24, paddingTop: 14, borderTop: hair }}>{aside}{elsewhere}</div>}
         </div>
       )}
 
-      <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 56, display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "15px clamp(18px, 3vw, 42px) 0", pointerEvents: "none" }}>
-        <span className="field-label" style={{ fontSize: 9.5 }}>{it.ref}</span>
-        <span data-nodrag="" role="button" tabIndex={0} onClick={it.onClose} onKeyDown={it.onCloseKey} className="field-label field-hover-accent" style={{ fontSize: 9.5, ...press, transition: "color 400ms ease" }}>
-          {it.narrow ? "×" : "close · esc ×"}
-        </span>
-      </div>
+      <span data-nodrag="" role="button" tabIndex={0} data-role="menu-btn" aria-haspopup="menu" aria-expanded={it.menu} onClick={it.onMenu} onKeyDown={it.onMenuKey} className="field-label field-hover-accent"
+        style={{ position: "absolute", left: "clamp(12px, 2.4vw, 34px)", top: 15, display: "flex", gap: 10, alignItems: "baseline", fontSize: 9.5, color: it.menu ? "var(--field-accent)" : undefined, ...press, transition: "color 400ms ease" }}>
+        <span aria-hidden="true">{it.menu ? "×" : "≡"}</span>{it.ref}
+      </span>
+      {it.menu && renderMenu(v, it)}
+      {it.scrollPanel && !it.menu && renderScrollPanel(it)}
     </>
   );
 }
