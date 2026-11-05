@@ -1,7 +1,7 @@
 ---
 title: Research log (experiments and studies)
-updated: 2026-11-01
-last_verified: 2026-11-01
+updated: 2026-11-05
+last_verified: 2026-11-05
 ---
 
 # Research log
@@ -66,6 +66,13 @@ The body has five sections in this order: Question, Sources, Notes, Deductions, 
 ## Media
 
 Experiment and study media (photographs, film, drawings, screenshots, models) is stored in R2, like entity media, under `experiments/EXP-NNNN/` or `studies/STU-NNNN/` in the `amorf-media` bucket. The frontmatter `media` lists the keys. Never put media files in git: the repository is public ([ADR-0002](../decisions/adr/0002-large-media-in-r2.md)). Files are immutable once published, so replace by adding a new name.
+
+## Notes and sources inside an item folder
+
+The folder holds more than the README when an item gathers material:
+
+- `notes/`: committed working notes (desk-search lists, reading reports), plain Markdown. The README summarises them and wins any disagreement.
+- `sources/`: local copies of the texts read (PDFs, extracted text). Gitignored by `research/**/sources/`, because most are copyrighted and the repository is public. The README links each source publicly so it can be fetched again.
 
 ## Tags
 

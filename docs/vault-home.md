@@ -1,6 +1,6 @@
 ---
 title: amorf docs vault
-updated: 2026-11-01
+updated: 2026-11-04
 last_verified: 2026-11-01
 ---
 
@@ -20,6 +20,8 @@ Start here. Read only the page that matches the task; each page is self-containe
 | [conventions/research-log.md](conventions/research-log.md) | creating or updating an experiment or study, its frontmatter, parts, tags or media |
 | [decisions/README.md](decisions/README.md) | finding why something is the way it is; the index of every ADR and DDR; adding a record |
 | [design/entity-view.md](design/entity-view.md) | changing the entity view: fixed frame, tools drawer, authored placement, edge-to-neighbour navigation (built) |
+| [design/backend.md](design/backend.md) | scoping or building `apps/api`; what each ontology part needs stored; who writes what (planned) |
+| [design/backend-decisions.md](design/backend-decisions.md) | choosing the backend stack: platform, database, auth, media pipeline, studio, search (proposed decision points) |
 | [backlog.md](backlog.md) | picking up planned work or feedback items; adding a to-do |
 | [open-questions.md](open-questions.md) | a choice is raised but not made; recording or closing an open question (`OQ-NNN`) |
 | [deployment.md](deployment.md) | deploying, changing the bucket, CORS, the domain, or debugging missing media on the live site |

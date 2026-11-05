@@ -1,7 +1,7 @@
 ---
 title: Folder structure
-updated: 2026-11-01
-last_verified: 2026-11-01
+updated: 2026-11-05
+last_verified: 2026-11-05
 status: monorepo layout and current state of apps/web documented; target for the remaining features proposed, not yet applied
 ---
 
@@ -106,9 +106,9 @@ components/
   field/
     Field.tsx                       the Field class component (client boundary)
     input.ts media.ts navigation.ts engine modules, no view of their own
-    types.ts util.ts plate.ts wear.ts chronology.ts tracks.ts   shared helpers
-    catalogue.ts notes.ts plan.ts table.ts                      logic; view lives in ui/
-    ui/  catalogue.tsx hud.tsx naming.tsx notes.tsx plan.tsx stage.tsx table.tsx trace.tsx
+    types.ts util.ts scribble.ts wear.ts chronology.ts tracks.ts   shared helpers
+    catalogue.ts ground.ts ground-math.ts map.ts notes.ts plan.ts table.ts      logic; view lives in ui/
+    ui/  catalogue.tsx hud.tsx map.tsx naming.tsx notes.tsx plan.tsx stage.tsx table.tsx trace.tsx
     interior/                       already follows the rule
       index.ts state.ts lifecycle.ts physics.ts input.ts paint.ts layout.ts placement.ts neighbours.ts view.tsx frame.tsx
 lib/

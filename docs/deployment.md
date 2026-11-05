@@ -1,7 +1,7 @@
 ---
 title: Deployment (Cloudflare Workers + R2)
-updated: 2026-11-02
-last_verified: 2026-11-02
+updated: 2026-11-05
+last_verified: 2026-11-05
 status: live at https://amorf.amorf.workers.dev; media CORS issue open (see Known issue); commands run from the repository root with pnpm
 ---
 
@@ -23,9 +23,11 @@ CLOUDFLARE_ACCOUNT_ID=d9a270a1f4adcaec08c276e75c0e52ed pnpm run deploy
 
 `NEXT_PUBLIC_MEDIA_BASE` comes from `apps/web/.env.production` (and `apps/web/.env.development` for `pnpm dev`).
 
-`pnpm run deploy` runs `next build && wrangler deploy` in `apps/web`. **`NEXT_PUBLIC_MEDIA_BASE` must be set for the build.** The `deploy` script does not set it, and the value is frozen into the JS at build time. A build without it points media at `/media/…` on the Worker, where the mp4 does not exist (it is excluded by `apps/web/public/.assetsignore`), so videos 404.
+`pnpm run deploy` runs `pnpm run build && wrangler deploy` in `apps/web`. **`NEXT_PUBLIC_MEDIA_BASE` must be set for the build.** The `deploy` script does not set it, and the value is frozen into the JS at build time. A build without it points media at `/media/…` on the Worker, where the mp4 does not exist (it is excluded by `apps/web/public/.assetsignore`), so videos 404.
 
 `pnpm preview` builds and runs `wrangler dev` locally.
+
+The entity list and every `entity.json` are fetched from R2 during the build, and Next stores those responses in `apps/web/.next/cache/fetch-cache` for a year. The `build` script deletes that folder first, and `deploy` and `preview` go through `build`. Run `next build` directly and the field is built from the last cached copy: new entities get their own page but are missing from the field, and edits to existing ones do not show.
 
 ## Local development
 

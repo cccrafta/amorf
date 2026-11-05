@@ -1,7 +1,7 @@
 ---
 title: Entities and entity.json
-updated: 2026-11-03
-last_verified: 2026-11-03
+updated: 2026-11-05
+last_verified: 2026-11-05
 status: entities in apps/web/content/entities/, synced to R2 with entities:sync, loaded by the app at build time (apps/web/lib/data/entities.ts)
 ---
 
@@ -47,6 +47,8 @@ Collection standards (IIIF, Europeana EDM, Smithsonian open-access records) keep
 
 ## Workflow
 
+Submissions arrive as folders in `raw_entities/draft/` (repository root, gitignored). The `entity-intake` skill (`.claude/skills/entity-intake/SKILL.md`) runs steps 1 to 5 for them: it keeps the sources in `originals/`, makes web derivatives, fills `entity.json` from cited research and from the images, drafts context paragraphs, and writes a per-field source table to `originals/intake.md` for review. It stops before step 6 until the editor says yes.
+
 1. Create `apps/web/content/entities/<id>/` and put sources in its `originals/` as found.
 2. Copy [`docs/templates/entity.json`](../templates/entity.json) into it, fill in what you know. The template's `$schema` is `./entity.schema.json`, which resolves only beside the schema file; in the copy, point it at `../../../../../docs/templates/entity.schema.json` (five levels up from the entity folder) for editor validation.
 3. Copy or convert the files to publish into the folder, renamed by the rules above, and list them in `media[]`.
@@ -66,7 +68,7 @@ Required: `schema`, `id`, `title`, `kind`. Everything else is optional: **omit o
 | `schema` | number | Version of this convention. Currently `1`. |
 | `id` | string | The slug; equals the folder name. |
 | `title` | string | Display title. |
-| `kind` | string | One of `building`, `drawing`, `photograph`, `document`, `film`, `sound`, `material`, `fragment`. The renderers pick plates and layouts from it. Adding a kind is a code change (`apps/web/components/field/plate.ts`). |
+| `kind` | string | One of `building`, `drawing`, `photograph`, `document`, `film`, `sound`, `material`, `fragment`. The kind is shown as the stamp on cards and in the index. |
 | `year` | string | Free text, not a number. Existing values: `1958`, `1921–1940`, `12th century`, `Safavid era`, `1907 (present structure)`. `apps/web/components/field/chronology.ts` parses these irregular forms. |
 | `place` | string | Where it is or was made, as a short human place: `Montevideo, Uruguay`. |
 | `creator` | string | Who made it: architect, painter, author, designer, recordist, archive. Shown as the entity's source. |

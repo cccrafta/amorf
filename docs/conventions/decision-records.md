@@ -1,7 +1,7 @@
 ---
 title: Decision records
-updated: 2026-10-31
-last_verified: 2026-10-31
+updated: 2026-11-04
+last_verified: 2026-11-04
 ---
 
 # Decision records
@@ -33,6 +33,8 @@ Write a record when the choice is hard to reverse, has real alternatives, or som
 3. Update both rows in the index.
 
 Links run both ways, so someone reading the old record finds the new one.
+
+A proposed record may set `supersedes` from the start, but steps 2 and 3 happen only when it is accepted. Until then the old record stays `accepted` and in force; if the proposal is rejected, nothing has to be undone.
 
 ## Numbering and files
 

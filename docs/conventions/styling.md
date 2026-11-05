@@ -1,7 +1,7 @@
 ---
 title: Styling (color and type tokens)
-updated: 2026-10-31
-last_verified: 2026-10-31
+updated: 2026-11-05
+last_verified: 2026-11-05
 ---
 
 # Styling
@@ -12,7 +12,7 @@ The rules live in `apps/web/app/tokens.css` and `apps/web/app/globals.css`; this
 
 - `app/tokens.css` is the only file that holds raw color values and font stacks. Everything else uses `var(--…)`.
 - Translucent variants are `color-mix(in srgb, var(--token) N%, transparent)`, never a raw `rgba()`.
-- Exceptions that must stay literal, each with a comment pointing back to the token: `TRACK_HUES` in `components/field/tracks.ts` (SVG stroke attributes), `LINE` in `components/field/plate.ts`, and the ink hex in `components/field/notes.ts` (canvas `strokeStyle`).
+- Exceptions that must stay literal, each with a comment pointing back to the token: `TRACK_HUES` in `components/field/tracks.ts` (SVG stroke attributes), and the ink hex in `components/field/notes.ts` (canvas `strokeStyle`).
 - `--field-mute-rgb` is an `r, g, b` triplet of `--field-mist` for older inline `rgba(var(--field-mute-rgb), a)` styles. Keep the two in step.
 
 ## Look
