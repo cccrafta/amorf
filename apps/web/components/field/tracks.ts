@@ -2,6 +2,8 @@
 import type Field from "./Field";
 import type { FieldNode } from "./types";
 import { rand } from "./util";
+import { groundPinned } from "./ground";
+import { EYE_HEIGHT, NEAR_EYE, ROUTE_REACH, wearPull, clipNear, unwrapRoute } from "./ground-math";
 
 // Literal hex, not var(): written straight into SVG stroke attributes. Mirrors --track-hue-* in app/tokens.css.
 export const TRACK_HUES = ["#4A63C4", "#8A8876", "#6F6F6F", "#34478F", "#A5A392"];
@@ -43,9 +45,11 @@ export function instance(f: Field, o: FieldNode, ox: number, oz: number) {
 // so a track thins toward the vanishing point instead of switching off.
 export function paintTracks(f: Field, fade: number) {
   const svg = f.tracks; if (!svg) return;
-  f.FLOOR = Math.max(440, window.innerHeight * 0.66);
+  // With the ground on, routes lie on the ground plane and each foot is the card's bottom-edge midpoint, so no pin is drawn.
+  const pin = groundPinned(f);
+  f.FLOOR = pin ? EYE_HEIGHT : Math.max(440, window.innerHeight * 0.66);
   if (!f.state.tracksOn) { if (svg.childElementCount) svg.textContent = ""; f.trackEls = null; f.trackKey = null; return; }
-  const stamp = [Math.round(f.cam.x), Math.round(f.cam.z), Math.round(f.cam.yaw * 4), Math.round(fade * 40), f.state.seeded.length, f.state.trace.length, f.wearRev || 0, Object.keys(f.state.kept || {}).length, window.innerWidth, window.innerHeight].join(",");
+  const stamp = [Math.round(f.cam.x), Math.round(f.cam.z), Math.round(f.cam.yaw * 4), Math.round(fade * 40), f.state.seeded.length, f.state.trace.length, f.wearRev || 0, Object.keys(f.state.kept || {}).length, window.innerWidth, window.innerHeight, pin ? 1 : 0].join(",");
   if (f.trackKey === stamp) return;
   f.trackKey = stamp;
   const NS = "http://www.w3.org/2000/svg";
@@ -76,15 +80,34 @@ export function paintTracks(f: Field, fade: number) {
     // the repetitions drawn for a route are centred on the route itself,
     // not on the camera, so a track never appears to orbit as you move
     const copies: [number, number][] = [];
-    for (let kx = -1; kx <= 1; kx++) for (let kz = -1; kz <= 1; kz++) copies.push([(kx0 + kx) * f.TILE, (kz0 + kz) * f.TILE]);
+    // On the ground the route is unwrapped by shortest steps and repeated once per torus copy that comes within reach.
+    const chain = pin ? unwrapRoute(objs.map(o => ({ x: o.hx, z: o.hz })), f.TILE) : null;
+    if (chain) {
+      const T = f.TILE, R = ROUTE_REACH, xs = chain.map(c => c.x), zs = chain.map(c => c.z);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
+      for (let kx = Math.ceil((f.cam.x - R - x1) / T); kx <= Math.floor((f.cam.x + R - x0) / T); kx++)
+        for (let kz = Math.ceil((f.cam.z - R - z1) / T); kz <= Math.floor((f.cam.z + R - z0) / T); kz++) copies.push([kx * T, kz * T]);
+    } else {
+      for (let kx = -1; kx <= 1; kx++) for (let kz = -1; kz <= 1; kz++) copies.push([(kx0 + kx) * f.TILE, (kz0 + kz) * f.TILE]);
+    }
+    // Cut plane for the segments: just in front of the eye on the ground, the camera frame's origin plus NEAR otherwise.
+    const nearD = pin ? -(f.P - NEAR_EYE) : NEAR;
+    const reach = pin ? ROUTE_REACH : 12000;
+    const winH = window.innerHeight, edge = 40;
+    // Trivial reject for a ground piece: both ends beyond the same screen edge (a piece crossing the screen is kept, however far its ends).
+    const outside = (p: { x: number; y: number }, q: { x: number; y: number }) =>
+      (p.x < -edge && q.x < -edge) || (p.x > W + edge && q.x > W + edge) || (p.y < -edge && q.y < -edge) || (p.y > winH + edge && q.y > winH + edge);
 
     copies.forEach(([ox, oz]) => {
       const pts = objs.map(o => {
-        const inst = f.instance(o, ox, oz);
-        const c = f.camPt(inst.wx, inst.wz);
+        const i = objs.indexOf(o);
+        const inst = chain ? { wx: chain[i].x + ox, wz: chain[i].z + oz, dy: 0 } : f.instance(o, ox, oz);
+        let c = f.camPt(inst.wx, inst.wz);
+        // the foot goes where the card stands, which the wear pull has moved along the line of sight
+        if (pin) c = { lx: c.lx, lz: c.lz + wearPull(f.wearOf(o.id), c.lz, f.NEARC) };
         return { c, dy: inst.dy, d: -c.lz };
       });
-      if (!pts.some(p => p.d > NEAR && p.d < 13000)) return;
+      if (!pin && !pts.some(p => p.d > NEAR && p.d < 13000)) return;
 
       for (let i = 0; i < pts.length; i++) {
         const p = pts[i];
@@ -94,7 +117,7 @@ export function paintTracks(f: Field, fade: number) {
             const bi = band(p.d);
             const r = Math.max(1.2, (7 + f.wearOf(objs[i].id) * 10) * g.scale);
             marks[bi] += "M" + (g.x - r).toFixed(1) + "," + g.y.toFixed(1) + "L" + (g.x + r).toFixed(1) + "," + g.y.toFixed(1);
-            if (p.d < f.FAR) {
+            if (p.d < f.FAR && !pin) {
               const t = f.screenPt(p.c, p.dy);
               drops[bi] += "M" + t.x.toFixed(1) + "," + t.y.toFixed(1) + "L" + g.x.toFixed(1) + "," + g.y.toFixed(1);
             }
@@ -104,20 +127,23 @@ export function paintTracks(f: Field, fade: number) {
 
         let a = { lx: p.c.lx, lz: p.c.lz }, b = { lx: pts[i + 1].c.lx, lz: pts[i + 1].c.lz };
         const da = -a.lz, db = -b.lz;
-        if (da < NEAR && db < NEAR) continue;
-        if (Math.min(da, db) > 12000) continue;
-        if (da < NEAR) { const t = (NEAR - da) / (db - da); a = { lx: a.lx + (b.lx - a.lx) * t, lz: -NEAR }; }
-        if (db < NEAR) { const t = (NEAR - db) / (da - db); b = { lx: b.lx + (a.lx - b.lx) * t, lz: -NEAR }; }
+        if (da < nearD && db < nearD) continue;
+        if (Math.min(da, db) > reach) continue;
+        const cut = clipNear(a, b, nearD);
+        if (!cut) continue;
+        [a, b] = cut;
+        // depths of the clipped piece: bands and subdivision follow what is drawn, not the whole segment
+        const ca = -a.lz, cb = -b.lz;
 
-        const K = Math.min(da, db) > 4000 ? 4 : (Math.min(da, db) > 1800 ? 8 : 14);
+        const K = Math.min(ca, cb) > 4000 ? 4 : (Math.min(ca, cb) > 1800 ? 8 : 14);
         let prev = f.screenPt(a, f.FLOOR), prevOff = Math.abs(prev.x) > W * 8;
         for (let k = 1; k <= K; k++) {
           const t = k / K;
           const c = { lx: a.lx + (b.lx - a.lx) * t, lz: a.lz + (b.lz - a.lz) * t };
           const q = f.screenPt(c, f.FLOOR);
           const off = Math.abs(q.x) > W * 8;
-          if (!off || !prevOff) {
-            const bi = band(da + (db - da) * (t - 0.5 / K));
+          if (pin ? !outside(prev, q) : (!off || !prevOff)) {
+            const bi = band(ca + (cb - ca) * (t - 0.5 / K));
             lines[bi] += "M" + prev.x.toFixed(1) + "," + prev.y.toFixed(1) + "L" + q.x.toFixed(1) + "," + q.y.toFixed(1);
           }
           prev = q; prevOff = off;

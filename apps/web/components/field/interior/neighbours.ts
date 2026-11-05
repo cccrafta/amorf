@@ -1,16 +1,42 @@
 // Interior neighbours: the entity past each edge of the open one, read from the field's slot grid, with a walk's next step on the right.
 import type Field from "../Field";
 import type { Dir } from "./state";
+import { inSpace } from "../spaces";
+import { wrap } from "../util";
 
 const STEP: Record<Dir, [number, number]> = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
 
+// The ids an open entity may lead to: a walk's or a space's own members while one is being walked, else null for the whole field.
+export function scopeOf(f: Field): Set<string> | null {
+  if (f.state.filter && f.filterSet) return f.filterSet;
+  if (inSpace(f) && f.sp.floor.size) return new Set(f.sp.floor.keys());
+  return null;
+}
+
+// Within a scope the slot grid has holes, so the neighbour is the nearest member in the half-plane past that edge, measured on the wrapped field.
+function scoped(f: Field, me: { id: string; hx: number; hz: number }, dir: Dir, scope: Set<string>): { id: string } | null {
+  const [dx, dz] = STEP[dir];
+  let best: string | null = null, bestScore = Infinity;
+  for (const q of f.OBJECTS) {
+    if (q.id === me.id || !scope.has(q.id)) continue;
+    const x = wrap(q.hx - me.hx, f.TILE), z = wrap(q.hz - me.hz, f.TILE);
+    const along = x * dx + z * dz, across = Math.abs(x * dz) + Math.abs(z * dx);
+    if (along <= 0) continue;
+    const score = along + across * 2;
+    if (score < bestScore) { bestScore = score; best = q.id; }
+  }
+  return best ? { id: best } : null;
+}
+
 // The field tiles, so the grid wraps; empty trailing slots of the last row are stepped over.
 export function neighbour(f: Field, id: string, dir: Dir): { id: string; walk?: string } | null {
+  const scope = scopeOf(f);
   if (dir === "right") {
     const p = f.passingTrace(), next = p && p.trace.steps[p.index] === id ? p.trace.steps[p.index + 1] : null;
-    if (p && next && next !== id && f.byId(next)) return { id: next, walk: p.trace.name };
+    if (p && next && next !== id && f.byId(next) && (!scope || scope.has(next))) return { id: next, walk: p.trace.name };
   }
   const nodes = f.OBJECTS, me = f.byId(id);
+  if (scope && me) return scoped(f, me, dir, scope);
   if (nodes.length < 2 || !me || me.gx === undefined) return null;
   const cols = Math.ceil(Math.sqrt(nodes.length)), rows = Math.ceil(nodes.length / cols);
   const slot = new Map<number, string>();

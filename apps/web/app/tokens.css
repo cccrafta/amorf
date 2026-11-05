@@ -46,6 +46,12 @@
   --track-hue-4: #34478f;
   --track-hue-5: #a5a392;
 
+  /* spaces (?spaces=): a walkable curation has its own fog; frame() mixes these into the --space-fog and --space-fog-mid
+     variables on the stage root, from the field's --field-bg-dark and --field-bg-mid at 0 */
+  --space-room-fog: #11151c;
+  --space-room-fog-mid: #1f2631;
+  --space-gate: var(--field-ink);
+
   --font-display: "Times New Roman", Times, serif;
   --font-body: "Times New Roman", Times, serif;
   --font-label: "Times New Roman", Times, serif;

@@ -1,14 +1,12 @@
 // Trace overlays: reading one trace, and composing a new one on tracing paper.
-import type { V, PlateSeg, NoteMark, Shown } from "../types";
+import type { V, NoteMark, Shown } from "../types";
 
 export function renderView(v: V, view: Shown<"view">) {
   return (
     <div style={{ position: "absolute", inset: 0, zIndex: 44, background: "color-mix(in srgb, var(--field-bg-dark) 95%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", padding: "clamp(16px, 3vh, 40px)", animation: "am-in 400ms ease both" }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "clamp(22px, 3.4vw, 52px)", alignItems: "center", width: "min(1120px, 100%)", maxHeight: "100%", overflowY: "auto" }}>
         <div style={{ position: "relative", aspectRatio: "3 / 2", border: "1px solid color-mix(in srgb, var(--field-line) 28%, transparent)" }}>
-          <svg viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.3 }}>
-            {view.plate.map((s: PlateSeg, i: number) => <path key={i} d={s.d} fill={s.fl} stroke={s.st} strokeWidth={s.w} opacity={s.o} />)}
-          </svg>
+          {view.thumb && <img src={view.thumb} alt="" decoding="async" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.3 }} />}
           {view.img && (
             <div role="img" aria-label="an uploaded sketch" style={{ position: "absolute", inset: 0, backgroundImage: view.imgCss ?? undefined, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat" }} />
           )}
@@ -58,9 +56,7 @@ export function renderCompose(v: V, c: Shown<"compose">) {
       </div>
       <div style={{ flex: "1 1 auto", overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "clamp(16px, 3vh, 32px) clamp(16px, 3vw, 40px) 34px" }}>
         <div style={{ position: "relative", width: "min(840px, 92vw, 93vh)", aspectRatio: "3 / 2", border: "1px solid color-mix(in srgb, var(--field-line) 30%, transparent)" }}>
-          <svg viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.4 }}>
-            {c.plate.map((s: PlateSeg, i: number) => <path key={i} d={s.d} fill={s.fl} stroke={s.st} strokeWidth={s.w} opacity={s.o} />)}
-          </svg>
+          {c.thumb && <img src={c.thumb} alt="" decoding="async" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.4 }} />}
           <div style={{ position: "absolute", inset: 0, background: "color-mix(in srgb, var(--field-ink) 4%, transparent)", pointerEvents: "none" }} />
           {c.img && (
             <div role="img" aria-label="an uploaded sketch" style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: c.imgCss ?? undefined, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat" }} />

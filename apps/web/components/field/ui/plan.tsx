@@ -1,5 +1,11 @@
 // Plan overlay: the field seen from above.
 import type { V } from "../types";
+import { PLAN_WALK } from "../plan";
+
+// The visitor's route as the plan draws it; the walk minimap reuses it with a finer width.
+export function PlanWalkPath({ d, width = PLAN_WALK.width, part }: { d: string; width?: number; part?: string }) {
+  return <path data-part={part} d={d} fill="none" stroke={PLAN_WALK.stroke} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" opacity={PLAN_WALK.opacity} />;
+}
 
 export function renderPlan(v: V) {
   return (
@@ -23,7 +29,7 @@ export function renderPlan(v: V) {
             {v.planWalks.map((w, wi) => (
               <path key={wi} d={w.d} fill="none" stroke={w.color} strokeWidth={w.w} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" opacity={w.op} />
             ))}
-            <path d={v.planMine} fill="none" stroke="var(--field-walk)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" opacity={0.9} />
+            <PlanWalkPath d={v.planMine} />
           </svg>
           {/* placePlanLabels() reads n.children[0] as the marker dot and n.children[1] as
               the label span by position — keep exactly these two children, in this order. */}

@@ -9,7 +9,6 @@ export const DEFAULT_TEMPLATE: TemplateEntry[] = [
   { kind: "title" },
   { kind: "meta" },
   { kind: "para", source: "description" },
-  { kind: "plate" },
   { kind: "media" },
   { kind: "video" },
 ];

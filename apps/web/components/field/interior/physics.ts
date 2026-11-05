@@ -39,6 +39,9 @@ export function nudge(f: Field, dx: number, dy: number) {
   const x = clampN(ix.panX + dx, loX, hiX), y = clampN(ix.panY + dy, loY, hiY);
   if (x !== ix.panX + dx) ix.vx = 0;
   if (y !== ix.panY + dy) ix.vy = 0;
+  // Pushing into a wall arms that side. Only the dominant axis counts, so drift across a board that fits never arms a side.
+  if (Math.abs(dy) >= Math.abs(dx)) { if (dy > 0 && y === hiY) ix.armed = "up"; else if (dy < 0 && y === loY) ix.armed = "down"; }
+  else if (dx > 0 && x === hiX) ix.armed = "left"; else if (dx < 0 && x === loX) ix.armed = "right";
   ix.panX = x; ix.panY = y;
 }
 
@@ -77,7 +80,7 @@ export function step(f: Field, dt: number, now: number) {
   if (sl && sl.out && now - sl.out >= SLIDE_OUT_MS) { ix.slide = null; f.forceUpdate(); }
 
   ix.depthWant = ix.phase === "inside" || ix.phase === "slide" ? 1 : 0;
-  if (ix.phase !== "inside") ix.edge = null;
+  if (ix.phase !== "inside") { ix.edge = null; ix.armed = null; }
   const k = f.reduced ? 1 : 1 - Math.exp(-dt / 170);
   ix.depth = clampN(ix.depth + (ix.depthWant - ix.depth) * k, 0, 1);
   if (!ix.depthWant && ix.depth < 0.002) ix.depth = 0;
@@ -100,7 +103,7 @@ function glide(f: Field, comp: Comp, dt: number, now: number) {
     ix.panKey = comp.id;
     ix.panX = clampN(W / 2 - comp.focus.x, loX, hiX);
     ix.panY = clampN(H / 2 - comp.focus.y, loY, hiY);
-    ix.vx = 0; ix.vy = 0; ix.goal = null;
+    ix.vx = 0; ix.vy = 0; ix.goal = null; ix.armed = null;
   } else if (ix.panDims !== comp.dims) {
     // a resize keeps the same place in the composition, as a fraction of its travel
     ix.panX = ix.panLoX ? clampN((ix.panX / ix.panLoX) * loX, loX, hiX) : hiX;
@@ -145,5 +148,9 @@ function glide(f: Field, comp: Comp, dt: number, now: number) {
 
   // Edges are walls, not doors: panning stays inside this entity; neighbours are reached by their labels or Alt+arrow.
   ix.edge = null;
+  // An armed side disarms once the board leaves that wall (a pan away, a zoom, a resize).
+  const lz = limits(comp, ix.zoom);
+  const still = { up: ix.panY >= lz.hiY - 0.5, down: ix.panY <= lz.loY + 0.5, left: ix.panX >= lz.hiX - 0.5, right: ix.panX <= lz.loX + 0.5 };
+  if (ix.armed && !still[ix.armed]) ix.armed = null;
   ix.wasHolding = holding;
 }

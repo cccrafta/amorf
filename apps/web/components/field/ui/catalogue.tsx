@@ -1,5 +1,5 @@
 // Catalogue (the index) overlay.
-import type { V, PlateSeg } from "../types";
+import type { V } from "../types";
 
 export function renderCatalogue(v: V) {
   return (
@@ -19,9 +19,7 @@ export function renderCatalogue(v: V) {
                 <div style={{ position: "relative", width: "100%", height: 240, transformStyle: "preserve-3d" }}>
                   {j.pages.map((pg, pi) => (
                     <div key={pi} style={{ position: "absolute", left: "50%", top: "50%", width: 250, height: 172, margin: "-86px 0 0 -125px", transform: `translate3d(${pg.x}, ${pg.y}, 0) rotateY(-62deg)`, transformOrigin: "50% 50%", border: "1px solid color-mix(in srgb, var(--field-ink) 20%, transparent)", background: "var(--field-bg-mid)", opacity: pg.op, transition: "opacity 420ms ease" }}>
-                      <svg viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true" style={{ display: "block", width: "100%", height: "100%" }}>
-                        {pg.plate.map((s: PlateSeg, si: number) => <path key={si} d={s.d} fill={s.fl} stroke={s.st} strokeWidth={s.w} opacity={s.o} />)}
-                      </svg>
+                      {pg.thumb && <img src={pg.thumb} alt="" loading="lazy" decoding="async" draggable={false} style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }} />}
                     </div>
                   ))}
                   <div style={{ position: "absolute", left: "50%", top: "50%", width: 250, height: 172, margin: "-86px 0 0 -125px", transform: `translate3d(${j.spineX}, ${j.spineY}, 0) rotateY(-62deg)`, transformOrigin: "50% 50%", background: j.color, opacity: j.spineOp, transition: "opacity 420ms ease" }} />

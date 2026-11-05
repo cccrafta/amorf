@@ -2,7 +2,6 @@
 import "./title";
 import "./meta";
 import "./para";
-import "./plate";
 import "./media";
 import "./video";
 

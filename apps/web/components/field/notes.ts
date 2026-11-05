@@ -1,9 +1,9 @@
 // Traces and notes: the tracing-paper canvas, composing a note, and the notes view models.
 import type React from "react";
 import type Field from "./Field";
-import type { FieldNote, NoteMark, PlateSeg, State } from "./types";
+import type { FieldNote, NoteMark, State } from "./types";
 import { key, type KeyHandler } from "./util";
-import { plate } from "./plate";
+import { mediaUrl } from "@/lib/media/url";
 
 // Marks visitors leave on entities are off until traces are specified (docs/backlog.md).
 // Walks are separate and stay on. Gates the compose control, drawer tab, card marks and HUD count.
@@ -156,7 +156,7 @@ export function composeVals(f: Field, st: State) {
   const onBroad = () => { f.paperW = 3.4; f.forceUpdate(); };
   return {
     compose: co ? {
-      title: co.t, plate: plate(co), img: f.paperImg || null, imgCss: f.paperImg ? "url(" + f.paperImg + ")" : null,
+      title: co.t, thumb: co.thumb ? mediaUrl(co.thumb) : null, img: f.paperImg || null, imgCss: f.paperImg ? "url(" + f.paperImg + ")" : null,
       uploadLabel: f.paperImg ? "sketch laid down" : "upload a sketch",
       fine: wsel(f.paperW < 1.2), medium: wsel(f.paperW >= 1.2 && f.paperW < 2.6), broad: wsel(f.paperW >= 2.6)
     } : null,
@@ -177,7 +177,7 @@ export function composeVals(f: Field, st: State) {
 }
 
 type NoteView = {
-  title: string; plate: PlateSeg[]; marks: NoteMark[]; img: string | null; ink: string; txt: string;
+  title: string; thumb: string | null; marks: NoteMark[]; img: string | null; ink: string; txt: string;
   imgCss: string | null; by: string; stamp: string; walk: string | null;
 };
 type JourneyStep = { n: string; title: string; here: string; color: string; go: () => void; key: KeyHandler };
@@ -200,7 +200,7 @@ export function viewVals(f: Field, st: State): ViewVals {
     const vo = f.byId(vn.obj), nxt = f.nextInWalk(vn);
     const handNotes = f.NOTES.filter(n => n.by === vn.by && n.id !== vn.id);
     view = {
-      title: vo.t, plate: plate(vo), marks: vn.marks || [], img: vn.img || null,
+      title: vo.t, thumb: vo.thumb ? mediaUrl(vo.thumb) : null, marks: vn.marks || [], img: vn.img || null,
       ink: vn.ink || f.inkColor(), txt: vn.txt, imgCss: vn.img ? "url(" + vn.img + ")" : null,
       by: vn.mine ? "left by you" : "left by " + vn.by,
       stamp: vn.kind === "written" ? "written, no sheet" : "on tracing paper",

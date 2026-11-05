@@ -1,7 +1,7 @@
 // Stage layer: the 3D world of cards and a single card.
-import type { V, PlateSeg, NoteMark, RenderNode } from "../types";
+import type { V, NoteMark, RenderNode } from "../types";
 
-// Card DOM order is load-bearing: frame() reads el.firstElementChild as the plate svg
+// Card DOM order is load-bearing: frame() reads el.firstElementChild as the empty frame svg behind the thumbnail
 // and el.children[2] as the <h3> title via querySelector("[data-obj]") — never reorder
 // the first three children (plate svg, kind/year row, title).
 export function renderNode(n: RenderNode, v: V) {
@@ -14,11 +14,7 @@ export function renderNode(n: RenderNode, v: V) {
       onClick={n.open}
       style={{ position: "absolute", left: "50%", top: "50%", width: 400, transformStyle: "preserve-3d", willChange: "transform, opacity", userSelect: "none", visibility: "hidden" }}
     >
-      <svg viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true" className="field-frame" style={{ display: "block", width: "100%", height: 266, background: "color-mix(in srgb, var(--field-ink) 5%, transparent)" }}>
-        {n.plate.map((s: PlateSeg, i: number) => (
-          <path key={i} d={s.d} fill={s.fl} stroke={s.st} strokeWidth={s.w} opacity={s.o} />
-        ))}
-      </svg>
+      <svg viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true" className="field-frame" style={{ display: "block", width: "100%", height: 266, background: "color-mix(in srgb, var(--field-ink) 5%, transparent)" }} />
       <div className="field-label" style={{ display: "flex", justifyContent: "space-between", gap: 12, margin: "18px 0 4px", fontSize: 10 }}>
         <span>{n.kind}</span>
         <span>{n.year}</span>
@@ -58,6 +54,7 @@ export function renderNode(n: RenderNode, v: V) {
           {n.traceLabel}
         </div>
       )}
+      {v.spaceOn && <div data-part="fog" style={{ position: "absolute", inset: 0, background: "var(--space-fog-mid, var(--field-bg-mid))", opacity: 0, pointerEvents: "none" }} />}
     </div>
   );
 }
@@ -66,10 +63,12 @@ export function renderStage(v: V) {
   return (
     <div
       data-role="stage"
-      style={{ position: "absolute", inset: 0, perspective: 900, perspectiveOrigin: "50% 46%", cursor: "crosshair", touchAction: "none", background: "radial-gradient(120% 90% at 50% 45%, var(--field-bg-mid) 0%, var(--field-bg-dark) 70%)" }}
+      style={{ position: "absolute", inset: 0, perspective: 900, perspectiveOrigin: "50% 46%", cursor: "crosshair", touchAction: "none", background: "radial-gradient(120% 90% at 50% 45%, var(--space-fog-mid, var(--field-bg-mid)) 0%, var(--space-fog, var(--field-bg-dark)) 70%)" }}
     >
+      {v.glOn && <canvas data-role="ground" aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", display: "none" }} />}
       <div data-role="world" style={{ position: "absolute", inset: 0, transformStyle: "preserve-3d", willChange: "transform" }}>
         {v.nodes.map(n => renderNode(n, v))}
+        {v.spaceGate && <div data-role="gate" aria-hidden="true" style={{ position: "absolute", left: "50%", top: "50%", width: 900, height: 1100, border: "1px solid var(--space-gate)", pointerEvents: "none", visibility: "hidden", willChange: "transform, opacity" }} />}
       </div>
       <svg data-role="tracks" aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 2, overflow: "visible" }} />
     </div>

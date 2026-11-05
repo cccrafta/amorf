@@ -2,6 +2,7 @@
 import { scroll } from "./scroll";
 import type Field from "./Field";
 import { keyPan, escInterior } from "./interior";
+import * as spaces from "./spaces";
 
 export function used(f: Field) { if (!f.hintGone) f.hintGone = true; }
 
@@ -75,6 +76,7 @@ export function bindStage(f: Field, el: HTMLElement) {
 }
 
 export function keydown(f: Field, e: KeyboardEvent) {
+  if (spaces.keydown(f, e)) return;
   if (f.state.plan) { if (e.key === "Escape") f.setState({ plan: false }); return; }
   if (f.state.tableOpen) { if (e.key === "Escape" && !(document.activeElement && document.activeElement.tagName === "INPUT")) f.setState({ tableOpen: false }); return; }
   if (f.state.catalogue) { if (e.key === "Escape") f.setState({ catalogue: false }); return; }

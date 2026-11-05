@@ -1,7 +1,7 @@
 // Wear: how much attention has settled on each object, and the cloud it leaves around it.
 import type Field from "./Field";
 import { rand } from "./util";
-import { scribble } from "./plate";
+import { scribble } from "./scribble";
 
 // Wear is not a score. It is how much of the collection's attention has
 // settled on a thing: the sheets left on it, the routes that go through it,

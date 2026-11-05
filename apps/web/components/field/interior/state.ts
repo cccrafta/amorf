@@ -31,6 +31,8 @@ export type Interior = {
   depth: number;
   depthWant: number;
   edge: { dir: Dir; pull: number } | null;
+  // the wall the reader last pushed into and still rests against: its label turns red and Enter or Space goes there
+  armed: Dir | null;
   drawer: Tab | null;
   enterAt: number;
   panX: number;
@@ -92,7 +94,7 @@ export type Interior = {
 };
 
 export const newInterior = (): Interior => ({
-  phase: "idle", depth: 0, depthWant: 0, edge: null, drawer: null, enterAt: 0,
+  phase: "idle", depth: 0, depthWant: 0, edge: null, armed: null, drawer: null, enterAt: 0,
   panX: 0, panY: 0, vx: 0, vy: 0, panKey: "", panDims: "", panLoX: 0, panLoY: 0, goal: null, comp: null,
   drag: null, pointers: new Map(), gesture: false, wheelAt: 0, wheelMags: [], wheelMute: 0, wheelMuteMag: 0, wheelMuteFrom: 0, wasHolding: false, movedAt: 0,
   cardRect: null, leaveTo: null, layoutKey: "", layout: null,

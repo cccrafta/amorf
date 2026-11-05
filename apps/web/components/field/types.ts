@@ -28,7 +28,6 @@ export type FieldNote = {
   ink?: string;
 };
 
-export type PlateSeg = { d: string; st: string; fl: string; w: number; o: string };
 
 export type TableMetrics = {
   b: { xMin: number; xMax: number; yMin: number; yMax: number };
@@ -86,7 +85,6 @@ export type RenderNode = {
   title: string;
   kind: string;
   year: string;
-  plate: PlateSeg[];
   live: boolean;
   thumb: string | null;
   open: () => void;

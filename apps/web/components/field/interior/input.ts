@@ -12,6 +12,12 @@ export function keyPan(f: Field, e: KeyboardEvent): boolean {
   if (ix.phase === "slide" || ix.slide) return true;
   if (ix.phase !== "inside" || e.metaKey || e.ctrlKey) return false;
   if ((e.target as HTMLElement | null)?.closest?.("video, input, textarea, select")) return false;
+  // Enter or Space goes to the armed side's neighbour, unless a focused control owns the key
+  if ((e.key === "Enter" || e.key === " ") && !e.altKey && !e.shiftKey) {
+    if (!ix.armed || (e.target as HTMLElement | null)?.closest?.('a, button, [role="button"], [role="menuitem"]')) return false;
+    goNeighbour(f, ix.armed); f.tick();
+    return true;
+  }
   // Alt + arrow jumps to that edge's neighbour; the caller's preventDefault keeps Alt+Left from going back in history
   if (e.altKey) {
     const dir = JUMP[e.key]; if (!dir) return false;

@@ -4,6 +4,12 @@ import type { FieldNode, State } from "./types";
 import { key } from "./util";
 import { mediaUrl } from "@/lib/media/url";
 
+// The plan's drawing language, shared with the walk minimap (map.ts) so the two cannot drift.
+export const PLAN_WALK = { stroke: "var(--field-walk)", width: 2, opacity: 0.9 };
+export const PLAN_INK = { visited: "var(--field-accent)", unvisited: "var(--field-ink-warm)" };
+// The visitor's own route needs two stops to be a line.
+export const planRoute = (st: State) => (st.trace.length > 1 ? st.trace.map(t => t.id) : []);
+
 // A node with a thumbnail shows it as the mark, so it needs room to be read; the worn-size range is shifted up for every node to keep them comparable.
 const nodePx = (o: FieldNode, wr: number) => (o.thumb ? 34 : 5) + wr * (o.thumb ? 30 : 13);
 
@@ -64,7 +70,7 @@ export function planVals(f: Field, st: State) {
       thumb: o.thumb ? mediaUrl(o.thumb) : null,
       // a picture stays near full strength so its colour reads; a bare square fades with wear
       op: on ? "1" : o.thumb ? (0.75 + wr * 0.25).toFixed(2) : (0.3 + wr * 0.7).toFixed(2),
-      ink: on ? "var(--field-accent)" : f.visited[o.id] ? "var(--field-accent)" : "#C9C5B9",
+      ink: on ? "var(--field-accent)" : f.visited[o.id] ? PLAN_INK.visited : PLAN_INK.unvisited,
       lox: (side === "row" ? half : -half).toFixed(1) + "px",
       ltf: side === "row" ? "translateY(-50%)" : "translate(-100%, -50%)",
       z: on ? "3" : "1",
@@ -87,7 +93,7 @@ export function planVals(f: Field, st: State) {
     const avg = objs.length ? objs.reduce((s, o) => s + f.wearOf(o.id), 0) / objs.length : 0;
     return { d: routeOf(w.steps), color: f.walkColor(w.name), w: (0.7 + avg * 2.6 + (st.kept[w.name] ? 1.2 : 0)).toFixed(2), op: (st.kept[w.name] ? 0.85 : 0.38).toFixed(2) };
   });
-  const planMine = st.trace.length > 1 ? routeOf(st.trace.map(t => t.id)) : "";
+  const planMine = routeOf(planRoute(st));
   const keptCount = Object.keys(st.kept).filter(k => st.kept[k]).length;
   const planTally = f.OBJECTS.length + " entities · " + st.seeded.length + (st.seeded.length === 1 ? " route" : " routes") + (keptCount ? " · " + keptCount + " kept" : "");
   return {

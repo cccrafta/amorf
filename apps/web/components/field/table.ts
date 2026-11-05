@@ -3,7 +3,7 @@ import type React from "react";
 import type Field from "./Field";
 import type { State, TableMetrics, Walk } from "./types";
 import { key, rand, stop } from "./util";
-import { plate } from "./plate";
+import { mediaUrl } from "@/lib/media/url";
 
 // The table is a surface of some real size, and a plate is a real size on
 // it. Both are measured, so a set is laid out in as many columns as the
@@ -143,7 +143,7 @@ export function tableVals(f: Field, st: State) {
     const o = f.byId(id), p = f.tablePos[id] || { x: 50, y: 50 };
     const off = (ev?: { stopPropagation(): void }) => { stop(ev); f.toggleAside(id); };
     return {
-      id, title: o.t, stamp: o.k + (o.y ? " · " + o.y : ""), plate: plate(o),
+      id, title: o.t, stamp: o.k + (o.y ? " · " + o.y : ""), thumb: o.thumb ? mediaUrl(o.thumb) : null,
       x: p.x.toFixed(2) + "%", y: p.y.toFixed(2) + "%",
       down: f.tableDown(id), off, offKey: key(() => off())
     };

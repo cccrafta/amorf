@@ -15,7 +15,7 @@ import { liveMedia } from "@/lib/media/registry";
 import * as pool from "@/lib/media/pool";
 import type { FieldNode, FieldNote, NoteMark, Props, RenderNode, State, TableMetrics, V, Walk } from "./types";
 import { rand, smooth, wrap, key, stop } from "./util";
-import { plate, scribble } from "./plate";
+import { scribble } from "./scribble";
 import { yearLabel, gap } from "./chronology";
 import * as wear from "./wear";
 import * as tracks from "./tracks";
@@ -25,6 +25,10 @@ import * as notes from "./notes";
 import * as plan from "./plan";
 import * as table from "./table";
 import * as interior from "./interior";
+import * as spaces from "./spaces";
+import { parseMap, mapVals, paintMap } from "./map";
+import { parseGl, glVals, initGround, paintGround, disposeGround, groundPinned, type GroundRt } from "./ground";
+import { groundY, wearPull } from "./ground-math";
 import { applyRoute, syncUrl } from "./route";
 import { parsePath } from "./route-path";
 import { syncMedia } from "./media";
@@ -41,7 +45,9 @@ import { renderInterior } from "./interior/view";
 import { renderCatalogue } from "./ui/catalogue";
 import { renderView, renderCompose } from "./ui/notes";
 import { renderPlan } from "./ui/plan";
+import { renderMap } from "./ui/map";
 import { renderTable } from "./ui/table";
+import { renderSpaceBar } from "./ui/space";
 import { renderNaming } from "./ui/naming";
 
 export default class Field extends React.Component<Props, State> {
@@ -148,6 +154,13 @@ export default class Field extends React.Component<Props, State> {
   hueNext = 0;
   filterSet: Set<string> | null = null;
   ix: interior.Interior = interior.newInterior();
+  sp: spaces.SpaceRt = spaces.newSpace();
+  mapOn = false;
+  glOn = false;
+  gl: GroundRt | null = null;
+  glPending = false;
+  // Layout height per card, re-read about once a second (a font or a wrapped title can change it) and not every frame.
+  cardH: Record<string, { h: number; t: number }> = {};
   suppressClick = 0;
   standAt: { x: number; z: number } | null = null;
   lastStandX?: number;
@@ -187,6 +200,11 @@ export default class Field extends React.Component<Props, State> {
 
   componentDidMount() {
     this.reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    spaces.init(this);
+    this.mapOn = parseMap(location.search);
+    this.glOn = parseGl(location.search);
+    // the canvas is rendered from glOn, which is only known now
+    if (this.glOn) this.forceUpdate();
     const cols = Math.ceil(Math.sqrt(this.OBJECTS.length));
     const cell = this.TILE / cols;
     const order = this.OBJECTS.map((o, i) => i).sort((a, b) => rand(this.OBJECTS[a].id + "o") - rand(this.OBJECTS[b].id + "o"));
@@ -261,6 +279,7 @@ export default class Field extends React.Component<Props, State> {
     this.resolve(); this.lastW = -1; this.layout(); this.tick();
     if (this.state.plan) this.placePlanLabels();
     syncUrl(this);
+    spaces.persist(this);
   }
 
   dropGesture() {
@@ -284,6 +303,7 @@ export default class Field extends React.Component<Props, State> {
     if (this.onPop) window.removeEventListener("popstate", this.onPop);
     this.dropGesture();
     pool.releaseAll();
+    disposeGround(this);
   }
 
   resolve() {
@@ -346,7 +366,7 @@ export default class Field extends React.Component<Props, State> {
         : { display: "block", flex: "", padding: "12px 10px 18px", borderTop: "1px solid color-mix(in srgb, var(--field-line) 14%, transparent)", borderLeft: "none" });
     }
 
-    const railOn = this.state.trace.length > 0;
+    const railOn = this.state.trace.length > 0 && !this.mapOn;
     const railW = rail && !narrow ? rail.getBoundingClientRect().width : 0;
     set('[data-role="journeybar"]', {
       left: (narrow ? 14 : (railOn ? railW + 22 : 24)) + "px",
@@ -354,7 +374,7 @@ export default class Field extends React.Component<Props, State> {
       maxWidth: narrow ? "calc(100vw - 28px)" : "min(52vw, 520px)"
     });
 
-    const bottomGap = narrow ? (this.state.trace.length ? 92 : 26) : 30;
+    const bottomGap = narrow ? (railOn ? 92 : 26) : 30;
     set('[data-role="focusbar"]', { bottom: bottomGap + "px" });
     const fb = document.querySelector<HTMLElement>('[data-role="focusbar"]');
     if (fb) {
@@ -394,6 +414,7 @@ export default class Field extends React.Component<Props, State> {
     cam.x += (cam.tx - cam.x) * kp;
     cam.z += (cam.tz - cam.z) * kp;
     cam.yaw += (cam.tyaw - cam.yaw) * ky;
+    const sl = spaces.step(this, now);
 
     interior.step(this, dt, now);
     const depth = this.ix.depth;
@@ -422,27 +443,39 @@ export default class Field extends React.Component<Props, State> {
       this.keepClear.push({ l: b.left, r: b.right, t: b.top, b: b.bottom, ramp: parseFloat(p.getAttribute("data-keepclear") || "") || 30 });
     });
 
+    const pinned = groundPinned(this);
     const fset = this.state.filter ? this.filterSet : null;
     let best: FieldNode | null = null, bestD = 1e9;
     for (const o of this.OBJECTS) {
       this.near[o.id] = 0;
       const el = this.els[o.id]; if (!el) continue;
-      if (fset && !fset.has(o.id)) { el.style.visibility = "hidden"; continue; }
-      const dx = wrap(o.hx - cam.x, this.TILE);
-      const dz = wrap(o.hz - cam.z, this.TILE);
+      // a set-aside card standing in the space is placed on the floor, once, with no torus wrap
+      const sc = sl ? spaces.cardAt(this, sl, o.id) : null;
+      if (fset && !fset.has(o.id) && !sc) { el.style.visibility = "hidden"; continue; }
+      if (sl && !sc && sl.fieldAlpha < 0.02) { el.style.visibility = "hidden"; continue; }
+      const dx = sc ? sc.x - sl!.view.x : wrap(o.hx - cam.x, this.TILE);
+      const dz = sc ? sc.z - sl!.view.z : wrap(o.hz - cam.z, this.TILE);
       // Measured before the culling below, so something just behind the camera is still heard.
       this.near[o.id] = smooth(this.FAR * 0.6, 300, Math.hypot(dx, dz));
       const tileX = Math.round((o.hx - cam.x - dx) / this.TILE);
       const tileZ = Math.round((o.hz - cam.z - dz) / this.TILE);
       const seed = o.id + ":" + tileX + ":" + tileZ;
-      const dy = (rand(seed + "y") - 0.5) * 2 * this.SPREAD_Y;
+      // With the ground on, the card's bottom edge sits on the plane groundY(H) below the stage centre; otherwise it is scattered.
+      let dy = sc ? 0 : (rand(seed + "y") - 0.5) * 2 * this.SPREAD_Y;
+      const pin = !sc && pinned;
+      if (pin) {
+        let ch = this.cardH[o.id];
+        if (!ch || now - ch.t > 1000) ch = this.cardH[o.id] = { h: el.offsetHeight, t: now };
+        dy = groundY(H) - ch.h / 2;
+      }
 
-      const lx = dx * cs + dz * sn;
-      const lzRaw = -dx * sn + dz * cs;
+      const vcs = sc ? sl!.cs : cs, vsn = sc ? sl!.sn : sn;
+      const lx = dx * vcs + dz * vsn;
+      const lzRaw = -dx * vsn + dz * vcs;
       const wr = this.wearOf(o.id);
       // attention is a kind of gravity: a worn thing stands closer than its
       // coordinate says, without ever leaving its place in the field
-      const pull = Math.max(0, Math.min(wr * 340, -lzRaw - this.NEARC - 60));
+      const pull = sc ? 0 : wearPull(wr, lzRaw, this.NEARC);
       const lz = lzRaw + pull;
       const d = -lz;
       if (d < this.NEARC || d > this.FAR) { el.style.visibility = "hidden"; continue; }
@@ -450,13 +483,14 @@ export default class Field extends React.Component<Props, State> {
       const arrive = smooth(this.FAR, this.FAR * 0.45, d);
       const pass = smooth(this.NEARC, 300, d);
       const farFade = smooth(this.FAR * 1.35, this.FAR * 0.95, d);
-      const op = Math.min(1, (0.36 + 0.64 * arrive) * (1 + wr * 0.24)) * pass * farFade * (1 - 0.55 * depth);
+      const op = Math.min(1, (0.36 + 0.64 * arrive) * (1 + wr * 0.24)) * pass * farFade * (1 - 0.55 * depth) * (sl ? (sc ? sl.spaceAlpha : sl.fieldAlpha) : 1);
       if (op < 0.03) { el.style.visibility = "hidden"; continue; }
 
       // cards stand on a cylinder around the camera: each turns its face toward the viewer by the bearing it sits at
       const wrapDeg = -Math.max(-60, Math.min(60, (Math.atan2(lx, d) * 180) / Math.PI)) * this.CURVE;
       const scale = this.P / (this.P - lz);
-      const sx = W / 2 + lx * scale, sy = H * 0.46 + dy * scale;
+      // the card centre is laid out around the stage centre (50%) but projected from the origin (46%); the unpinned estimate ignores that gap
+      const sx = W / 2 + lx * scale, sy = H * 0.46 + (pin ? dy + (0.5 - 0.46) * H : dy) * scale;
       if (sx < -600 || sx > W + 600) { el.style.visibility = "hidden"; continue; }
 
       const spared = this.state.focus && this.state.focus.id === o.id;
@@ -477,7 +511,12 @@ export default class Field extends React.Component<Props, State> {
       el.style.opacity = (op * clear).toFixed(3);
       el.style.pointerEvents = op > 0.45 ? "auto" : "none";
       el.style.filter = this.reduced ? "none" : `blur(${((1 - arrive) * 1.4 + depth * 13).toFixed(2)}px)`;
+      // Pinned cards turn about their own centre (origin at the box's top-left, where translate(-50%, -50%) puts the centre);
+      // with the default centre origin that translate would swing the card off its anchor by up to half its width as it turns.
+      const to = pin ? "0 0" : "";
+      if (el.dataset.to !== to) { el.style.transformOrigin = to; el.dataset.to = to; }
       el.style.transform = `translate3d(${lx.toFixed(1)}px, ${dy.toFixed(1)}px, ${lz.toFixed(1)}px) rotateY(${wrapDeg.toFixed(2)}deg) translate(-50%, -50%)`;
+      if (sl) spaces.fogCard(el, spaces.tint(sl, d));
       this.screenPos[o.id] = { sx, sy, scale };
 
       // focus is decided by geometry, not by the dive's dimming — otherwise a
@@ -543,8 +582,10 @@ export default class Field extends React.Component<Props, State> {
       this.stage.dataset.mode = mode;
     }
 
-    this.paintTracks(depth);
+    if (sl) spaces.paint(this, sl, depth); else this.paintTracks(depth);
     interior.paint(this);
+    if (this.mapOn) paintMap(this);
+    if (this.glOn) paintGround(this);
 
     if (this.state.plan) {
       const you = document.querySelector<HTMLElement>('[data-role="planyou"]');
@@ -573,11 +614,11 @@ export default class Field extends React.Component<Props, State> {
   paintTracks(fade: number) { tracks.paintTracks(this, fade); }
 
   clearFilterFor(id: string) { nav.clearFilterFor(this, id); }
-  open(id: string, mark: string) { nav.open(this, id, mark); }
+  open(id: string, mark: string) { if (!spaces.inSpace(this)) nav.open(this, id, mark); }
   collapse() { interior.collapse(this); this.tick(); }
   leaveToward(id: string, mark?: string, friction?: boolean) { interior.leaveToward(this, id, mark, friction); this.tick(); }
   approach(id: string, dist: number) { nav.approach(this, id, dist); }
-  flyTo(id: string, mark: string, allowFriction: boolean, andOpen: boolean) { nav.flyTo(this, id, mark, allowFriction, andOpen); }
+  flyTo(id: string, mark: string, allowFriction: boolean, andOpen: boolean) { if (!spaces.inSpace(this)) nav.flyTo(this, id, mark, allowFriction, andOpen); }
   runSearch(q: string) { nav.runSearch(this, q); }
   passingTrace(): { trace: Walk; index: number } | null { return nav.passingTrace(this); }
   commitName = (e?: React.FormEvent) => nav.commitName(this, e);
@@ -593,7 +634,7 @@ export default class Field extends React.Component<Props, State> {
   renderVals() {
     const st = this.state;
     const nodes: RenderNode[] = this.nodes ?? (this.nodes = this.OBJECTS.map(o => ({
-      id: o.id, title: o.t, kind: o.k, year: o.y || "—", plate: plate(o), live: !o.thumb && !!liveMedia(o), thumb: o.thumb ? mediaUrl(o.thumb) : null,
+      id: o.id, title: o.t, kind: o.k, year: o.y || "—", live: !o.thumb && !!liveMedia(o), thumb: o.thumb ? mediaUrl(o.thumb) : null,
       open: () => this.open(o.id, "◉"),
       marks: [], hasMarks: false, cloud: [], traceLabel: "", openTrace: () => {}
     })));
@@ -690,9 +731,12 @@ export default class Field extends React.Component<Props, State> {
 
     const planV = planVals(this, st);
     const tableV = tableVals(this, st);
+    const spaceV = spaces.vals(this, st);
+    const mapV = mapVals(this, st);
+    const glV = glVals(this);
 
     // Spread order is the override order: a later slice wins a shared key.
-    return { ...base, ...catalogueV, trace, crossed, ...notesV, ...composeV, ...viewV, ...interiorV, seeded, ...planV, ...tableV };
+    return { ...base, ...catalogueV, trace, crossed, ...notesV, ...composeV, ...viewV, ...interiorV, seeded, ...planV, ...tableV, ...spaceV, ...mapV, ...glV };
   }
 
   render() {
@@ -701,13 +745,14 @@ export default class Field extends React.Component<Props, State> {
     // and churn identities every commit.
     const v: V = { ...this.props, ...this.renderVals() };
     return (
-      <div style={{ position: "fixed", inset: 0, background: "var(--field-bg-dark)", color: "var(--field-ink)", fontFamily: "var(--font-body)" }}>
+      <div style={{ position: "fixed", inset: 0, background: "var(--space-fog, var(--field-bg-dark))", color: "var(--field-ink)", fontFamily: "var(--font-body)" }}>
         {renderStage(v)}
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10, background: "radial-gradient(140% 110% at 50% 50%, transparent 44%, color-mix(in srgb, var(--field-bg-dark) 84%, transparent) 100%)" }} />
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10, background: "radial-gradient(140% 110% at 50% 50%, transparent 44%, color-mix(in srgb, var(--space-fog, var(--field-bg-dark)) 84%, transparent) 100%)" }} />
         {renderHud(v)}
         {v.jump && renderJump(v, v.jump)}
         {v.focus && renderFocusbar(v, v.focus)}
-        {v.hasTrace && renderTraceRail(v)}
+        {v.hasTrace && !v.mapOn && renderTraceRail(v)}
+        {v.mapShown && renderMap(v)}
         {v.inJourney && renderJourneybar(v, v.inJourney)}
         {renderHint()}
         {v.others && renderOthers(v)}
@@ -717,6 +762,7 @@ export default class Field extends React.Component<Props, State> {
         {v.compose && renderCompose(v, v.compose)}
         {v.plan && renderPlan(v)}
         {v.table && renderTable(v)}
+        {v.spaceIn && renderSpaceBar(v)}
         {v.naming && renderNaming(v)}
       </div>
     );

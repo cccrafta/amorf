@@ -2,7 +2,7 @@
 import type Field from "./Field";
 import type { FieldNode, State } from "./types";
 import { key, rand, stop } from "./util";
-import { plate } from "./plate";
+import { mediaUrl } from "@/lib/media/url";
 import { yearOf } from "./chronology";
 
 export function catalogueVals(f: Field, st: State) {
@@ -50,7 +50,7 @@ export function catalogueVals(f: Field, st: State) {
       leave_hover: () => { if (f.state.hoverJourney === name) f.setState({ hoverJourney: null }); },
       name, color,
       pages: shown.map((o, i) => ({
-        plate: plate(o),
+        thumb: o.thumb ? mediaUrl(o.thumb) : null,
         x: ((i - (shown.length - 1) / 2) * 22).toFixed(1) + "px",
         y: ((rand(o.id + name + "py") - 0.5) * 6).toFixed(1) + "px",
         op: ((0.4 + (i / Math.max(1, shown.length - 1)) * 0.58) * (hovered ? 0.26 : 1)).toFixed(2)

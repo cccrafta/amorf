@@ -25,7 +25,9 @@ export function syncUrl(f: Field) {
     if (want === f.routeGoal || now - f.routeGoalAt > 3000) f.routeGoal = null; else return;
   }
   if (want === "/" && now < f.routeHold) return;
-  const q = f.state.query.trim(), search = q ? "?q=" + encodeURIComponent(q) : "";
+  const q = f.state.query.trim(), cur = new URLSearchParams(location.search), spaces = cur.get("spaces"), map = cur.get("map"), gl = cur.get("gl");
+  const parts = [q ? "q=" + encodeURIComponent(q) : "", spaces ? "spaces=" + encodeURIComponent(spaces) : "", map ? "map=" + encodeURIComponent(map) : "", gl ? "gl=" + encodeURIComponent(gl) : ""].filter(Boolean);
+  const search = parts.length ? "?" + parts.join("&") : "";
   if (pathNow() !== want) history.pushState(null, "", want + search);
   else if (location.search !== search) history.replaceState(null, "", want + search);
   const title = want.startsWith("/entities/") ? f.byId(f.state.open as string)?.t : null;

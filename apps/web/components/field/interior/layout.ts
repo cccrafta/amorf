@@ -9,7 +9,7 @@ import { liveMedia, rendererFor } from "@/lib/media/registry";
 import { preload, preloadLater } from "@/lib/media/preload";
 import { clampN, DIRS, FLOAT, type Dir, type Item, type Layout, type Tab } from "./state";
 import { NARROW, resolve } from "./placement";
-import { neighbour } from "./neighbours";
+import { neighbour, scopeOf } from "./neighbours";
 import { goNeighbour, setDrawer } from "./lifecycle";
 import { limits } from "./physics";
 import { buildPieces } from "./pieces";
@@ -43,7 +43,7 @@ function boardOf(o: FieldNode, W: number, H: number) {
   const heroAt = live && !o.thumb ? live.index : thumbAt > -1 ? thumbAt : firstImage > -1 ? firstImage : live ? live.index : -1;
 
   const all = buildPieces({ o, W, narrow, heroAt, live: live ? live.index : null });
-  const heroKey = heroAt > -1 ? "m" + heroAt : all.some(p => p.key === "plate") ? "plate" : null;
+  const heroKey = heroAt > -1 ? "m" + heroAt : null;
   const hero = all.find(p => p.key === heroKey) || null;
   // On narrow screens there is no float column: its pieces lead the vertical stack instead.
   const floats = narrow ? [] : all.filter(p => p.layer === "float");
@@ -65,6 +65,9 @@ export type Placed = ReturnType<typeof boardOf>["pieces"][number];
 function buildInterior(f: Field, st: State, o: FieldNode, notesHere: NotesHere) {
   const W = window.innerWidth, H = window.innerHeight;
   const { narrow, media, firstImage, floats, floatOverflow, lay, pieces } = boardOf(o, W, H);
+  // Inside a walk or a space, nothing outside it is offered: not as a neighbour, a relation or a random pick.
+  const scope = scopeOf(f), reachable = (id: string) => !scope || scope.has(id);
+  const pool = scope ? f.OBJECTS.filter(q => scope.has(q.id)) : f.OBJECTS;
   const meta = ([["date", o.y], ["place", o.place]] as const).filter(r => !!r[1]).map(([k, v]) => ({ k, v: v as string }));
 
   const ix = f.ix;
@@ -74,11 +77,11 @@ function buildInterior(f: Field, st: State, o: FieldNode, notesHere: NotesHere) 
     ix.layout = lay; ix.layoutKey = lk;
     // this entity's pictures first, then those of every place a move can land (neighbours, related, the unrelated pick), so the move finds them decoded
     urlsOf(o).forEach(preload);
-    const others = f.OBJECTS.filter(q => q.id !== o.id);
+    const others = pool.filter(q => q.id !== o.id);
     ix.elsewhere = others.length ? others[Math.floor(Math.random() * others.length)].id : "";
     const reach = [
       ...DIRS.map(d => neighbour(f, o.id, d)?.id),
-      ...f.ASSOC.filter(a => a[0] === o.id || a[1] === o.id).map(a => (a[0] === o.id ? a[1] : a[0])),
+      ...f.ASSOC.filter(a => a[0] === o.id || a[1] === o.id).map(a => (a[0] === o.id ? a[1] : a[0])).filter(reachable),
       ix.elsewhere,
     ];
     preloadLater([...new Set(reach)].flatMap(id => { const to = id && f.byId(id); return to ? urlsOf(to) : []; }));
@@ -98,12 +101,12 @@ function buildInterior(f: Field, st: State, o: FieldNode, notesHere: NotesHere) 
     const nextId = p.trace.steps[p.index + 1], go = () => { f.setState({ joined: p.trace.name }); f.leaveToward(nextId, "↓", false); };
     passing = { name: p.trace.name, go, key: key(go) };
   }
-  const assoc = f.ASSOC.filter(a => (a[0] === o.id || a[1] === o.id) && f.byId(a[0] === o.id ? a[1] : a[0])).map(a => {
+  const assoc = f.ASSOC.filter(a => (a[0] === o.id || a[1] === o.id) && f.byId(a[0] === o.id ? a[1] : a[0]) && reachable(a[0] === o.id ? a[1] : a[0])).map(a => {
     const other = a[0] === o.id ? a[1] : a[0], go = () => f.leaveToward(other, "↓", true);
     return { reason: a[2], title: f.byId(other).t, go, key: key(go) };
   });
   const onElsewhere = () => {
-    const pick = ix.elsewhere || f.OBJECTS.find(q => q.id !== st.open)?.id;
+    const pick = ix.elsewhere || pool.find(q => q.id !== st.open)?.id;
     if (!pick) return;
     f.setState({ joined: null });
     f.leaveToward(pick, "⤳", false);
@@ -127,7 +130,7 @@ function buildInterior(f: Field, st: State, o: FieldNode, notesHere: NotesHere) 
   const sl = ix.slide;
   const interior = {
     slide: sl ? { key: sl.to + ":" + sl.start, dir: sl.dir, r0: sl.r0, fade: !sl.dir || f.reduced, p: preview(f, sl.to, W, H) } : null,
-    ref: "[a}morf · " + String(f.OBJECTS.indexOf(o) + 1).padStart(3, "0") + " / " + f.OBJECTS.length,
+    ref: "[a}morf · " + String(pool.indexOf(o) + 1).padStart(3, "0") + " / " + pool.length,
     w: lay.w, h: lay.h, narrow, entity: o.id, reduced: f.reduced, unfold: ix.slid !== o.id,
     pieces,
     floats, floatOpen: ix.floatOpen, floatOverflow, onFloat, onFloatKey: key(onFloat),

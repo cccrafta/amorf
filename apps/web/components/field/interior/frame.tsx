@@ -135,7 +135,7 @@ function renderFacts(it: InteriorView) {
   );
 }
 
-// Everything the old footer and header held lives in one popup behind the top-left button: the drawer tabs, the walk
+// Everything the old footer and header held, except "set it aside" (its own top-right button), lives in one popup behind the top-left button: the drawer tabs, the walk
 // control, "somewhere unrelated", "leave a trace" and close. Esc still closes; see escInterior.
 function renderMenu(v: V, it: InteriorView) {
   const pick = (fn?: () => void) => () => { it.closeMenu(); fn?.(); };
@@ -147,7 +147,6 @@ function renderMenu(v: V, it: InteriorView) {
     <div data-role="menu" data-nodrag="" role="menu" aria-label="entity options"
       style={{ position: "absolute", left: "clamp(12px, 2.4vw, 34px)", top: 44, width: 240, padding: "4px 16px 6px", border: hair, background: panel, backdropFilter: "blur(6px)", cursor: "default", zIndex: 2 }}>
       {it.tabs.map(t => row(<><span>{t.id}</span>{t.n && <span style={{ opacity: 0.7 }}>{t.n}</span>}</>, t.go, t.on ? "var(--field-accent)" : undefined, t.id))}
-      {row(v.asideLabel, v.onAside, v.asideColor, "aside")}
       {row("⤳ somewhere unrelated", v.onElsewhere, undefined, "elsewhere")}
       {TRACES_ENABLED && row("+ leave a trace", v.onCompose, undefined, "compose")}
       {row("scroll feel", it.onScrollPanel, it.scrollPanel ? "var(--field-accent)" : undefined, "scroll")}
@@ -177,7 +176,7 @@ function renderScrollPanel(it: InteriorView) {
   );
 }
 
-// Order is the Tab order: neighbour labels, then the drawer, then the menu button and its popup.
+// Order is the Tab order: neighbour labels, then the drawer, then the menu button, "set it aside" and the menu popup.
 export function renderFrame(v: V, it: InteriorView) {
   return (
     <>
@@ -202,6 +201,10 @@ export function renderFrame(v: V, it: InteriorView) {
         style={{ position: "absolute", left: "clamp(12px, 2.4vw, 34px)", top: 15, display: "flex", gap: 10, alignItems: "baseline", fontSize: 9.5, color: it.menu ? "var(--field-accent)" : undefined, ...press, transition: "color 400ms ease" }}>
         <span aria-hidden="true">{it.menu ? "×" : "≡"}</span>{it.ref}
       </span>
+      {/* top-right, mirroring the menu button; the wide drawer covers it while open. A mouse press does not focus it, so
+          Enter and Space stay with the armed edge (input.keyPan yields them to a focused control); Tab still reaches it. */}
+      <span data-nodrag="" role="button" tabIndex={0} data-role="aside-btn" onMouseDown={e => e.preventDefault()} onClick={v.onAside} onKeyDown={v.onAsideKey} className="field-label field-hover-accent"
+        style={{ position: "absolute", right: "clamp(12px, 2.4vw, 34px)", top: 15, fontSize: 9.5, whiteSpace: "nowrap", color: v.asideColor, ...press, transition: "color 400ms ease" }}>{v.asideLabel}</span>
       {it.menu && renderMenu(v, it)}
       {it.scrollPanel && !it.menu && renderScrollPanel(it)}
     </>

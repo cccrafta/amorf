@@ -29,20 +29,24 @@ const INWARD: Record<Dir, [number, number]> = { left: [1, 0], right: [-1, 0], up
 // Narrow screens show left and right only while pulled. The drawer hides them all: it covers the right edge.
 function paintEdges(f: Field, ix: Interior) {
   const e = ix.phase === "inside" && !ix.drawer ? ix.edge : null;
-  const ek = (e ? e.dir + e.pull.toFixed(3) : "-") + (f.narrow ? "n" : "w") + (ix.drawer ? "d" : "") + (ix.slide ? "s" : "");
+  const a = ix.phase === "inside" && !ix.drawer && !ix.slide ? ix.armed : null;
+  const ek = (e ? e.dir + e.pull.toFixed(3) : "-") + (a || "-") + (f.narrow ? "n" : "w") + (ix.drawer ? "d" : "") + (ix.slide ? "s" : "");
   if (ek === ix.edgeKey) return;
   ix.edgeKey = ek;
   DIRS.forEach(d => {
     const el = ix.edges[d]; if (!el || !el.label) return;
-    const p = e && e.dir === d ? e.pull : 0, k = Math.min(1, p / COMMIT);
-    const side = d === "left" || d === "right", hidden = !!ix.drawer || !!ix.slide || (f.narrow && side && p < 0.02);
+    // an armed side shows as a full pull, in red: the label's title and sub read the overridden variables
+    const on = a === d, p = e && e.dir === d ? e.pull : 0, k = on ? 1 : Math.min(1, p / COMMIT);
+    const side = d === "left" || d === "right", hidden = !!ix.drawer || !!ix.slide || (f.narrow && side && k < 0.02);
     el.label.style.opacity = hidden ? "0" : (0.45 + 0.55 * k).toFixed(3);
     el.label.style.pointerEvents = hidden ? "none" : "auto";
+    el.label.style.setProperty("--field-title", on ? "var(--field-red)" : "");
+    el.label.style.setProperty("--field-label", on ? "var(--field-red)" : "");
     const [ux, uy] = INWARD[d], t = f.reduced ? 0 : 24 * k;
     el.label.style.translate = (ux * t).toFixed(1) + "px " + (uy * t).toFixed(1) + "px";
-    if (el.line) el.line.style.transform = (side ? "scaleY(" : "scaleX(") + k.toFixed(3) + ")";
+    if (el.line) { el.line.style.transform = (side ? "scaleY(" : "scaleX(") + k.toFixed(3) + ")"; el.line.style.background = on ? "var(--field-red)" : "var(--field-accent)"; }
     if (el.sub) {
-      const s = p >= COMMIT ? "release to go" : el.sub.dataset.rest || "";
+      const s = on ? "enter to go" : p >= COMMIT ? "release to go" : el.sub.dataset.rest || "";
       if (el.sub.textContent !== s) el.sub.textContent = s;
     }
   });
