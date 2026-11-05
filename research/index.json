@@ -65,6 +65,27 @@
       "path": "studies/0002-entity-lifecycle/README.md"
     },
     {
+      "id": "STU-0003",
+      "kind": "study",
+      "title": "What makes a navigable digital environment a place and not a void",
+      "date": "2026-11-04",
+      "status": "running",
+      "parts": [
+        "field",
+        "space",
+        "journey"
+      ],
+      "question": "What do architecture, perception theory, spatial archives and games use to make a moving visitor feel they are in a place, and a threshold felt rather than a fade?",
+      "tags": [
+        "promenade-architecturale",
+        "wayfinding",
+        "threshold",
+        "spatial-interface",
+        "level-design"
+      ],
+      "path": "studies/0003-place-not-void/README.md"
+    },
+    {
       "id": "EXP-0001",
       "kind": "experiment",
       "title": "Entity view navigation and authored placement, pattern research",
@@ -158,14 +179,14 @@
     {
       "id": "EXP-0006",
       "kind": "experiment",
-      "title": "Thresholds that make a space felt in the field",
+      "title": "Crossing a threshold from the field into a space you curated",
       "date": "2026-11-03",
-      "status": "planned",
+      "status": "running",
       "parts": [
         "space",
         "field"
       ],
-      "question": "When the field is divided into spaces, each with its own atmosphere and marked off by a threshold, do visitors notice they have changed space and can they say where they are?",
+      "question": "When the entities a visitor has set aside on the table become a place entered through a threshold, with their own atmosphere and at the coordinates the visitor arranged, does entering it feel like arriving in a space rather than opening a panel?",
       "tags": [
         "promenade-architecturale",
         "threshold",
@@ -246,6 +267,41 @@
         "replay"
       ],
       "path": "experiments/0010-journey-as-montage/README.md"
+    },
+    {
+      "id": "EXP-0011",
+      "kind": "experiment",
+      "title": "A plan drawn by walking against a list of steps",
+      "date": "2026-11-05",
+      "status": "running",
+      "parts": [
+        "journey",
+        "field"
+      ],
+      "question": "Does a small live plan of the walk, with unvisited entities faint, orient the visitor better than a list of step titles, without pulling the eye off the field?",
+      "tags": [
+        "wayfinding",
+        "promenade-architecturale"
+      ],
+      "path": "experiments/0011-walk-plan-drawn-by-walking/README.md"
+    },
+    {
+      "id": "EXP-0012",
+      "kind": "experiment",
+      "title": "A WebGL ground against the CSS-only void",
+      "date": "2026-11-05",
+      "status": "running",
+      "parts": [
+        "field"
+      ],
+      "question": "Does a WebGL ground with a texture gradient, fog and a horizon make the field read as a place where the CSS-only field reads as a void?",
+      "tags": [
+        "ground",
+        "horizon",
+        "webgl",
+        "place-not-void"
+      ],
+      "path": "experiments/0012-webgl-ground-against-css-void/README.md"
     }
   ]
 }

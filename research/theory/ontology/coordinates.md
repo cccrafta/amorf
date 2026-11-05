@@ -2,8 +2,8 @@
 title: Coordinates
 part: coordinates
 status: draft
-updated: 2026-11-01
-last_verified: 2026-11-01
+updated: 2026-11-05
+last_verified: 2026-11-05
 ---
 
 # Coordinates
@@ -21,6 +21,8 @@ Architectural reading: Placement and proximity.
 Deductions currently held, newest last. Each entry is dated and cites its evidence. Never rewrite an entry; add a new one that revises it.
 
 - **2026-11-01:** Defined as above in the ontology conversation ([transcript](transcript.md)).
+- **2026-11-04:** Authors place first; a semantic layout may follow, with pins kept over it (owner answer, [backend.md](../../../docs/design/backend.md#open-questions-for-this-epic) question 18). Proposed in [DDR-0003](../../../docs/decisions/ddr/0003-placements-in-plan-units-per-space.md): a coordinate belongs to the pair (space, entity), stored as plan `x` and `z` in world units; pinned positions never move when entities are added or removed. The meaning of the axes stays open.
+- **2026-11-05:** For now, whoever uploads an entity assigns its coordinates; another source (metadata, a semantic layout) may follow later. Owner answer in the EXP-0006 session. The axes still carry no fixed meaning, but a held deduction in [STU-0003](../../studies/0003-place-not-void/README.md) (2) says position must mean something, so the uploader's placement is expected to be deliberate.
 
 ## Research
 
