@@ -82,8 +82,14 @@ research/**/*.flac
 research/**/*.aac
 research/**/*.zip
 
+# entities
+/raw_entities
+
 # entity working copies in any app, not only apps/web
 **/content/entities/
 
 # per-machine Claude Code settings
 .claude/settings.local.json
+
+# full texts of sources read for a study: copyrighted, kept locally, never in the public repo
+research/**/sources/
