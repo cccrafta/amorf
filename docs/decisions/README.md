@@ -1,7 +1,7 @@
 ---
 title: Decision records
-updated: 2026-11-05
-last_verified: 2026-11-05
+updated: 2026-11-06
+last_verified: 2026-11-06
 ---
 
 # Decision records
@@ -30,7 +30,7 @@ Technology decisions are ADRs, design, spatial and material decisions are DDRs. 
 | [ADR-0016](adr/0016-studio-as-vite-react-spa.md) | Build the studio as a Vite + React SPA in apps/studio, with the real entity board as its board editor | proposed | 2026-11-04 |
 | [ADR-0017](adr/0017-zod-schemas-hono-api-drizzle.md) | Define schemas with Zod 4 in packages/core, build the API with Hono and @hono/zod-openapi, and query D1 with Drizzle 0.45.x | proposed | 2026-11-04 |
 | [ADR-0018](adr/0018-monorepo-tooling-revisited.md) | Keep pnpm workspaces without a task runner after adding apps/api and apps/studio | proposed | 2026-11-04 |
-| [ADR-0019](adr/0019-three-js-for-the-field-ground-in-a-flagged-spike.md) | Use three.js for the field's ground, on by default with ?gl=0 as the opt-out | proposed | 2026-11-05 |
+| [ADR-0019](adr/0019-three-js-for-the-field-ground-in-a-flagged-spike.md) | Use three.js WebGPURenderer with TSL for the field's world, WebGL 2 as its automatic fallback, ?gl=0 as the opt-out | proposed | 2026-11-06 |
 
 ## Design decision records
 
@@ -39,6 +39,7 @@ Technology decisions are ADRs, design, spatial and material decisions are DDRs. 
 | [DDR-0001](ddr/0001-raw-print-look-and-visual-tokens.md) | Use a raw print look, and keep every colour and font stack in tokens.css | accepted | 2026-10-29 |
 | [DDR-0002](ddr/0002-entity-view-fixed-frame-and-board.md) | Build the entity view as a fixed frame over an authored board on a 12-column square grid | accepted | 2026-10-29 |
 | [DDR-0003](ddr/0003-placements-in-plan-units-per-space.md) | Place entities by stored plan coordinates per space, in world units, with pins that never move | proposed | 2026-11-04 |
+| [DDR-0004](ddr/0004-entity-form-with-media-faces-derived.md) | Show each entity as a form with its media projected onto it, faces filled automatically, proportion from the cover | proposed | 2026-11-06 |
 
 ## How to add one
 
