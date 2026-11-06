@@ -27,6 +27,7 @@ It indexes everything. Read the page that matches the task before changing code:
 - Adding or editing an entity (one folder under gitignored `apps/web/content/entities/<id>/` with an `entity.json`; never committed, published to R2): `docs/conventions/entities.md`. Say "entity", never "entry". Run `pnpm entities:check` after any change.
 - Media URLs, env vars, entity data, anything that fetches: `docs/conventions/services-and-data.md`.
 - Routes, images, server features, anything that could break `output: "export"`: `docs/conventions/next-16-static-export.md`.
+- Three.js scene code (meshes, TSL, tuned numbers, texture loading): `docs/conventions/three-scenes.md`.
 - Colors, fonts, visual styling: `docs/conventions/styling.md`.
 - Deploying, the R2 bucket, CORS, or missing media on the live site: `docs/deployment.md`.
 - Commit messages and what may be committed: `docs/conventions/git.md`.

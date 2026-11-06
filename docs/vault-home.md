@@ -14,6 +14,7 @@ Start here. Read only the page that matches the task; each page is self-containe
 | [conventions/entities.md](conventions/entities.md) | adding or editing an entity, its folder, its `entity.json`, its media, or the probe and check scripts |
 | [conventions/services-and-data.md](conventions/services-and-data.md) | touching media URLs, env vars, entity data, or anything that fetches |
 | [conventions/next-16-static-export.md](conventions/next-16-static-export.md) | adding a route, a server feature, an image, or anything that might break `output: "export"` |
+| [conventions/three-scenes.md](conventions/three-scenes.md) | writing or changing three.js scene code (meshes, shaders, instance data, tuned numbers, texture loading) |
 | [conventions/styling.md](conventions/styling.md) | changing colors, fonts or any visual styling; adding a color or a type recipe |
 | [conventions/git.md](conventions/git.md) | writing a commit message, choosing a scope, or deciding what may be committed |
 | [conventions/decision-records.md](conventions/decision-records.md) | deciding whether something needs an ADR, a DDR or an experiment; superseding a record |
