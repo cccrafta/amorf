@@ -86,6 +86,68 @@
       "path": "studies/0003-place-not-void/README.md"
     },
     {
+      "id": "STU-0004",
+      "kind": "study",
+      "title": "Which renderer path lets the field embed 3D content and read as a real place",
+      "date": "2026-11-06",
+      "status": "running",
+      "parts": [
+        "field",
+        "entity"
+      ],
+      "question": "Which renderer path lets the field embed 3D content (models) and read as a real place, and still scale from hundreds to 100,000 entities: WebGLRenderer, WebGPURenderer with its WebGL 2 fallback, or DOM cards over a WebGL ground?",
+      "tags": [
+        "webgl",
+        "webgpu",
+        "three-js",
+        "scale",
+        "ground",
+        "place-not-void"
+      ],
+      "path": "studies/0004-renderer-path-for-3d-field/README.md"
+    },
+    {
+      "id": "STU-0005",
+      "kind": "study",
+      "title": "Tesseract by Bahae Ben as a reference for one world seen through several cameras",
+      "date": "2026-11-06",
+      "status": "done",
+      "parts": [
+        "field",
+        "journey"
+      ],
+      "question": "How does tesseract.postminimal.agency build one real-time world whose camera and input change per view, and what of it should amorf take for one world, many cameras?",
+      "tags": [
+        "webgpu",
+        "three-js",
+        "camera",
+        "navigation",
+        "journey",
+        "precedent"
+      ],
+      "path": "studies/0005-tesseract-reference/README.md"
+    },
+    {
+      "id": "STU-0006",
+      "kind": "study",
+      "title": "An entity's media projected onto a form (cube first, sphere later)",
+      "date": "2026-11-06",
+      "status": "done",
+      "parts": [
+        "entity",
+        "field"
+      ],
+      "question": "How should an entity's media be projected onto a 3D form in the field, so that one system serves a cube now, a sphere later and other forms after, reads well, and scales to thousands of entities on WebGPURenderer with its WebGL 2 fallback?",
+      "tags": [
+        "entity-form",
+        "projection",
+        "webgpu",
+        "tsl",
+        "cube-map"
+      ],
+      "path": "studies/0006-media-projected-on-forms/README.md"
+    },
+    {
       "id": "EXP-0001",
       "kind": "experiment",
       "title": "Entity view navigation and authored placement, pattern research",
@@ -302,6 +364,84 @@
         "place-not-void"
       ],
       "path": "experiments/0012-webgl-ground-against-css-void/README.md"
+    },
+    {
+      "id": "EXP-0013",
+      "kind": "experiment",
+      "title": "The field's ground on WebGPURenderer with TSL, against the WebGLRenderer ground",
+      "date": "2026-11-06",
+      "status": "running",
+      "parts": [
+        "field"
+      ],
+      "question": "Does the ground, moved from WebGLRenderer to WebGPURenderer with a TSL node material, look and behave the same on the WebGPU backend and on the forced WebGL 2 backend as it did on WebGLRenderer?",
+      "tags": [
+        "ground",
+        "webgpu",
+        "tsl",
+        "renderer"
+      ],
+      "path": "experiments/0013-scene-core-on-webgpu/README.md"
+    },
+    {
+      "id": "EXP-0014",
+      "kind": "experiment",
+      "title": "One instanced rest cube with media on its faces, morphed to a sphere, on WebGPU and WebGL 2",
+      "date": "2026-11-06",
+      "status": "running",
+      "parts": [
+        "entity",
+        "field"
+      ],
+      "question": "Can one InstancedMesh of a subdivided rest cube, reading each face's picture from one texture array, draw every entity as a box with its media on the faces, morph to a sphere with the pictures staying in place, and turn by itself, identically on the WebGPU backend and on the forced WebGL 2 backend?",
+      "tags": [
+        "entity-form",
+        "webgpu",
+        "tsl",
+        "cube-map",
+        "animation"
+      ],
+      "path": "experiments/0014-forms-with-media-faces/README.md"
+    },
+    {
+      "id": "EXP-0015",
+      "kind": "experiment",
+      "title": "How far one rest cube stretches as an entity's outline (taper, twist, bend, relief, cut-outs) before its media stop reading",
+      "date": "2026-11-06",
+      "status": "running",
+      "parts": [
+        "entity",
+        "field"
+      ],
+      "question": "Which outline deformations of the one rest cube (round, taper, twist, bend, relief, cut-outs), set per form, keep the entity's media legible and the field calm, while still drawing every form in one call on both backends?",
+      "tags": [
+        "entity-form",
+        "webgpu",
+        "tsl",
+        "form-outline"
+      ],
+      "path": "experiments/0015-form-outline-from-one-rest-cube/README.md"
+    },
+    {
+      "id": "EXP-0016",
+      "kind": "experiment",
+      "title": "Entity view in three.js: click a form, the camera moves in, the form unfolds into its flat board",
+      "date": "2026-11-06",
+      "status": "running",
+      "parts": [
+        "entity",
+        "field"
+      ],
+      "question": "Can the same instanced rest cube that draws every form also draw the entity view, by unfolding one instance into its cube net in the vertex stage while the camera travels to it, and folding back, without a second mesh or a scene change?",
+      "tags": [
+        "entity-view",
+        "entity-form",
+        "webgpu",
+        "tsl",
+        "cube-map",
+        "animation"
+      ],
+      "path": "experiments/0016-entity-view-unfold-in-the-lab/README.md"
     }
   ]
 }
