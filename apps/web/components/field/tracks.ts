@@ -2,7 +2,7 @@
 import type Field from "./Field";
 import type { FieldNode } from "./types";
 import { rand } from "./util";
-import { groundPinned } from "./ground";
+import { groundPinned } from "./world";
 import { EYE_HEIGHT, NEAR_EYE, ROUTE_REACH, wearPull, clipNear, unwrapRoute } from "./ground-math";
 
 // Literal hex, not var(): written straight into SVG stroke attributes. Mirrors --track-hue-* in app/tokens.css.

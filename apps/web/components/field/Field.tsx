@@ -27,7 +27,7 @@ import * as table from "./table";
 import * as interior from "./interior";
 import * as spaces from "./spaces";
 import { parseMap, mapVals, paintMap } from "./map";
-import { parseGl, glVals, initGround, paintGround, disposeGround, groundPinned, type GroundRt } from "./ground";
+import { parseGl, glVals, paintWorld, disposeWorld, groundPinned, type WorldRt } from "./world";
 import { groundY, wearPull } from "./ground-math";
 import { applyRoute, syncUrl } from "./route";
 import { parsePath } from "./route-path";
@@ -157,7 +157,7 @@ export default class Field extends React.Component<Props, State> {
   sp: spaces.SpaceRt = spaces.newSpace();
   mapOn = false;
   glOn = false;
-  gl: GroundRt | null = null;
+  gl: WorldRt | null = null;
   glPending = false;
   // Layout height per card, re-read about once a second (a font or a wrapped title can change it) and not every frame.
   cardH: Record<string, { h: number; t: number }> = {};
@@ -303,7 +303,7 @@ export default class Field extends React.Component<Props, State> {
     if (this.onPop) window.removeEventListener("popstate", this.onPop);
     this.dropGesture();
     pool.releaseAll();
-    disposeGround(this);
+    disposeWorld(this);
   }
 
   resolve() {
@@ -585,7 +585,7 @@ export default class Field extends React.Component<Props, State> {
     if (sl) spaces.paint(this, sl, depth); else this.paintTracks(depth);
     interior.paint(this);
     if (this.mapOn) paintMap(this);
-    if (this.glOn) paintGround(this);
+    if (this.glOn) paintWorld(this);
 
     if (this.state.plan) {
       const you = document.querySelector<HTMLElement>('[data-role="planyou"]');
