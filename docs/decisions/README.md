@@ -40,6 +40,7 @@ Technology decisions are ADRs, design, spatial and material decisions are DDRs. 
 | [DDR-0002](ddr/0002-entity-view-fixed-frame-and-board.md) | Build the entity view as a fixed frame over an authored board on a 12-column square grid | accepted | 2026-10-29 |
 | [DDR-0003](ddr/0003-placements-in-plan-units-per-space.md) | Place entities by stored plan coordinates per space, in world units, with pins that never move | proposed | 2026-11-04 |
 | [DDR-0004](ddr/0004-entity-form-with-media-faces-derived.md) | Show each entity as a form with its media projected onto it, faces filled automatically, proportion from the cover | proposed | 2026-11-06 |
+| [DDR-0005](ddr/0005-entity-as-thumbnail-form-with-satellite-forms.md) | Show an entity as one thumbnail form with its media as satellite forms around it, and let forms have more than six sides | proposed | 2026-11-06 |
 
 ## How to add one
 
