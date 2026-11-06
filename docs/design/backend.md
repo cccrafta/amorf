@@ -1,13 +1,15 @@
 ---
 title: Backend (apps/api), scope and data inventory
 status: planned
-updated: 2026-11-04
-last_verified: 2026-11-04
+updated: 2026-11-06
+last_verified: 2026-11-06
 ---
 
 # Backend (apps/api): scope and data inventory
 
 **Planned.** Nothing on this page is built. `apps/api` does not exist. The code is the source of truth for what exists; this page records what the backend is for and what it has to hold, so the epic can be split into decisions and work.
+
+Needs raised by the spatial engine epic are collected, step by step, in the "Backend needs (running list)" section of [one world, many cameras](one-world-many-cameras.md). Items move from there into this page or into an ADR once they are decided.
 
 The rules stay in their own pages ([entities.md](../conventions/entities.md), [services-and-data.md](../conventions/services-and-data.md), the ADRs). Where this page disagrees with them, they win.
 

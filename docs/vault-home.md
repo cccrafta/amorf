@@ -1,7 +1,7 @@
 ---
 title: amorf docs vault
-updated: 2026-11-04
-last_verified: 2026-11-01
+updated: 2026-11-06
+last_verified: 2026-11-06
 ---
 
 # amorf docs
@@ -22,6 +22,7 @@ Start here. Read only the page that matches the task; each page is self-containe
 | [design/entity-view.md](design/entity-view.md) | changing the entity view: fixed frame, tools drawer, authored placement, edge-to-neighbour navigation (built) |
 | [design/backend.md](design/backend.md) | scoping or building `apps/api`; what each ontology part needs stored; who writes what (planned) |
 | [design/backend-decisions.md](design/backend-decisions.md) | choosing the backend stack: platform, database, auth, media pipeline, studio, search (proposed decision points) |
+| [design/one-world-many-cameras.md](design/one-world-many-cameras.md) | the site's direction: one WebGPU 3D world with field, plan and journey as cameras, 3D entity views, recorded visits (planned epic) |
 | [backlog.md](backlog.md) | picking up planned work or feedback items; adding a to-do |
 | [open-questions.md](open-questions.md) | a choice is raised but not made; recording or closing an open question (`OQ-NNN`) |
 | [deployment.md](deployment.md) | deploying, changing the bucket, CORS, the domain, or debugging missing media on the live site |
