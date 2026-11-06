@@ -148,6 +148,26 @@
       "path": "studies/0006-media-projected-on-forms/README.md"
     },
     {
+      "id": "STU-0007",
+      "kind": "study",
+      "title": "An entity as a cosmology: a form and its satellites as a model of a piece of knowledge",
+      "date": "2026-11-06",
+      "status": "running",
+      "parts": [
+        "entity",
+        "field"
+      ],
+      "question": "An entity shown as one form with its pictures orbiting it reads (owner, 2026-11-06) as a cosmology rather than a collection of media. What is the difference, what tradition does it belong to, and what follows for how amorf presents articles and other pieces of knowledge?",
+      "tags": [
+        "entity-form",
+        "satellites",
+        "composition",
+        "motion",
+        "knowledge-model"
+      ],
+      "path": "studies/0007-entity-as-a-cosmology/README.md"
+    },
+    {
       "id": "EXP-0001",
       "kind": "experiment",
       "title": "Entity view navigation and authored placement, pattern research",
@@ -442,6 +462,48 @@
         "animation"
       ],
       "path": "experiments/0016-entity-view-unfold-in-the-lab/README.md"
+    },
+    {
+      "id": "EXP-0017",
+      "kind": "experiment",
+      "title": "Entity view as a board: click a form, its pictures fly out of it into the radial board of all media",
+      "date": "2026-11-06",
+      "status": "running",
+      "parts": [
+        "entity",
+        "field"
+      ],
+      "question": "Can the three.js entity view show the same radial board of all media as the DOM entity view, by flying every picture of the opened entity out of its form into the board layout, without a second scene and without the DOM?",
+      "tags": [
+        "entity-view",
+        "entity-form",
+        "webgpu",
+        "tsl",
+        "board",
+        "animation"
+      ],
+      "path": "experiments/0017-entity-view-board-explode-in-the-lab/README.md"
+    },
+    {
+      "id": "EXP-0018",
+      "kind": "experiment",
+      "title": "Satellite forms: an entity's pictures after its cover orbit its form as small cubes",
+      "date": "2026-11-06",
+      "status": "running",
+      "parts": [
+        "entity",
+        "field"
+      ],
+      "question": "Can an entity's remaining pictures be shown as small satellite forms orbiting its thumbnail form, in the same single draw, so that the field shows how much each entity holds without opening it?",
+      "tags": [
+        "entity-form",
+        "satellites",
+        "orbit",
+        "webgpu",
+        "tsl",
+        "composition"
+      ],
+      "path": "experiments/0018-satellite-forms-around-the-entity-form/README.md"
     }
   ]
 }
