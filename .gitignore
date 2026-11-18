@@ -93,3 +93,9 @@ research/**/*.zip
 
 # full texts of sources read for a study: copyrighted, kept locally, never in the public repo
 research/**/sources/
+
+# Worker local secrets
+.dev.vars*
+
+# studio build output
+/apps/studio/dist/
