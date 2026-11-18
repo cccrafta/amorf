@@ -1,0 +1,21 @@
+// Worker "studio": the SPA's static assets and the /api routes, behind Cloudflare Access.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "studio",
+  "account_id": "d9a270a1f4adcaec08c276e75c0e52ed",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Every request, assets included, passes the Access check in worker/index.ts first.
+    "run_worker_first": true
+  },
+  "r2_buckets": [
+    { "binding": "MEDIA", "bucket_name": "amorf-media" },
+    { "binding": "ARCHIVE", "bucket_name": "amorf-archive" }
+  ],
+  "observability": { "enabled": true }
+}

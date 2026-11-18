@@ -1,7 +1,7 @@
 ---
 title: Styling (color and type tokens)
-updated: 2026-11-05
-last_verified: 2026-11-05
+updated: 2026-11-18
+last_verified: 2026-11-18
 ---
 
 # Styling
@@ -31,3 +31,11 @@ Raw print look: black void, flat grey panels, plain Times, no webfonts.
 | On/off controls | `.field-check` square; `data-on="1"` draws the red cross |
 
 There is no highlight color: `--field-accent` equals `--field-ink`. No glows, outlines on thumbnails, blur or rounded corners.
+
+## Studio
+
+`apps/studio` keeps its own `src/tokens.css`, the only file in the studio with raw colours and font stacks ([DDR-0006](../decisions/ddr/0006-studio-type-director-and-letter-gothic.md)).
+
+- Colours repeat the field palette values (`--studio-bg`, `--studio-ink`, `--studio-blue`, `--studio-red`, `--studio-line`). Change both files together until a shared tokens package exists.
+- `--font-display` is Director, bundled as woff2 in `src/fonts/director/` with its OFL licence. Use it for titles only.
+- `--font-body` is Letter Gothic Std through `local()` only, falling back to Courier New, then `monospace`. Letter Gothic is a commercial Adobe font: never commit its files or serve it as a webfont.

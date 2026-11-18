@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.worker.tsbuildinfo",
+    "target": "ES2022",
+    "lib": ["es2023"],
+    "allowJs": false,
+    "types": ["@cloudflare/workers-types"]
+  },
+  "include": ["worker", "schema"]
+}

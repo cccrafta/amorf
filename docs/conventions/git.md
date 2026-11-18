@@ -1,7 +1,7 @@
 ---
 title: Git conventions
-updated: 2026-10-31
-last_verified: 2026-10-31
+updated: 2026-11-18
+last_verified: 2026-11-18
 ---
 
 # Git conventions
@@ -15,6 +15,7 @@ Types: `feat`, `fix`, `docs`, `refactor`, `perf`, `chore`, `build`, `ci`, `rever
 | Scope | Covers |
 | --- | --- |
 | `web` | `apps/web` |
+| `studio` | `apps/studio` |
 | `api` | `apps/api` (future) |
 | `core` | `packages/core` (future) |
 | `docs` | `docs/` outside decision records |

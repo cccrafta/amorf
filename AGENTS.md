@@ -6,6 +6,7 @@ amorf is a design-research project with architects. Thesis: structure is the pri
 
 ```
 apps/web/     The site: Next.js 16 static export on Cloudflare (package @amorf/web)
+apps/studio/  The authoring app: Vite + React SPA and Hono API in one Worker behind Cloudflare Access (package @amorf/studio)
 apps/api/     Future backend app (not created yet)
 packages/     Shared @amorf/* packages; empty until a second consumer exists (see packages/README.md)
 research/     theory/ (with ontology/), studies/, experiments/, portfolio/ (see research/README.md)
@@ -17,7 +18,7 @@ docs/         Conventions, decisions (ADR and DDR), design notes, templates, dep
 
 pnpm workspaces; no Turborepo or Nx. Run from the repository root; scripts delegate to `@amorf/web`:
 
-`pnpm install`, `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm run deploy`, `pnpm entities:check` (also `entities:probe`, `entities:sync`), `pnpm research:index` and `pnpm research:check`.
+`pnpm install`, `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm run deploy`, `pnpm entities:check` (also `entities:probe`, `entities:sync`), `pnpm research:index` and `pnpm research:check`. Studio: `pnpm studio:dev`, `pnpm studio:deploy`. `pnpm lint` runs every app's lint.
 
 ## Start at docs/vault-home.md
 
@@ -29,6 +30,7 @@ It indexes everything. Read the page that matches the task before changing code:
 - Routes, images, server features, anything that could break `output: "export"`: `docs/conventions/next-16-static-export.md`.
 - Three.js scene code (meshes, TSL, tuned numbers, texture loading): `docs/conventions/three-scenes.md`.
 - Colors, fonts, visual styling: `docs/conventions/styling.md`.
+- The studio app (`apps/studio`), its Access sign-in and its deploy: `docs/design/studio-v0.md` and the "Studio" section of `docs/deployment.md`.
 - Deploying, the R2 bucket, CORS, or missing media on the live site: `docs/deployment.md`.
 - Commit messages and what may be committed: `docs/conventions/git.md`.
 - Writing or superseding a decision record: `docs/conventions/decision-records.md`.

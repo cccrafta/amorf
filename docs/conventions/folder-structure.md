@@ -1,7 +1,7 @@
 ---
 title: Folder structure
-updated: 2026-11-05
-last_verified: 2026-11-05
+updated: 2026-11-18
+last_verified: 2026-11-18
 status: monorepo layout and current state of apps/web documented; target for the remaining features proposed, not yet applied
 ---
 
@@ -16,6 +16,7 @@ The repository is a pnpm workspace ([ADR-0008](../decisions/adr/0008-pnpm-worksp
 ```
 apps/
   web/        The site: Next.js app, package @amorf/web. Everything below "Inside apps/web" applies here.
+  studio/     The authoring app, package @amorf/studio. See "Inside apps/studio" below.
   api/        Future backend app. Not created yet.
 packages/     Shared workspace packages (@amorf/*). Empty until a second consumer exists; see packages/README.md.
 research/     Theory (with the ontology), studies, experiments and portfolio. See research/README.md.
@@ -134,3 +135,18 @@ Apply the rule to the remaining features, one feature per change, with no behavi
 When the last `ui/` file moves, delete `ui/`. The engine modules (`input.ts`, `media.ts`, `navigation.ts`) and shared helpers stay at the root of `components/field/`.
 
 Move one feature at a time and verify with `tsc`, `pnpm build` and a manual pass in the browser after each.
+
+## Inside apps/studio
+
+Vite + React SPA and a Hono API in one Worker ([ADR-0021](../decisions/adr/0021-thin-studio-on-access-and-r2-before-the-backend.md)). The server and the browser are kept apart because they run in different places; inside each, group by feature as above. Target tree: [../design/studio-v0.md](../design/studio-v0.md).
+
+```
+worker/       Server (Worker). index.ts mounts the routes after the Access check; one file per API feature.
+src/          Browser (SPA). main.tsx is the entry; one folder per feature (entities/, media/, field/).
+schema/       Zod schemas with no JSX, imported by both worker/ and src/.
+scripts/      Node scripts for the app (seed-local.mjs).
+```
+
+- `worker/` never imports from `src/`, and `src/` never imports from `worker/`; both may import `schema/`.
+- Storage goes through `worker/store.ts` only, so a later move to D1 changes one file.
+- Three tsconfigs: `tsconfig.app.json` (src, DOM types), `tsconfig.worker.json` (worker, Workers types), `tsconfig.node.json` (Vite and ESLint config).

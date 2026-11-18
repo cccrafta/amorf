@@ -1,7 +1,7 @@
 ---
 title: Decision records
-updated: 2026-11-06
-last_verified: 2026-11-06
+updated: 2026-11-18
+last_verified: 2026-11-18
 ---
 
 # Decision records
@@ -31,6 +31,8 @@ Technology decisions are ADRs, design, spatial and material decisions are DDRs. 
 | [ADR-0017](adr/0017-zod-schemas-hono-api-drizzle.md) | Define schemas with Zod 4 in packages/core, build the API with Hono and @hono/zod-openapi, and query D1 with Drizzle 0.45.x | proposed | 2026-11-04 |
 | [ADR-0018](adr/0018-monorepo-tooling-revisited.md) | Keep pnpm workspaces without a task runner after adding apps/api and apps/studio | proposed | 2026-11-04 |
 | [ADR-0019](adr/0019-three-js-for-the-field-ground-in-a-flagged-spike.md) | Use three.js WebGPURenderer with TSL for the field's world, WebGL 2 as its automatic fallback, ?gl=0 as the opt-out | proposed | 2026-11-06 |
+| [ADR-0020](adr/0020-small-picture-derivatives-at-publish.md) | Make small picture derivatives at publish time, in entities:sync | proposed | 2026-11-15 |
+| [ADR-0021](adr/0021-thin-studio-on-access-and-r2-before-the-backend.md) | Run a thin studio Worker on Cloudflare Access and R2 before the backend exists | proposed | 2026-11-18 |
 
 ## Design decision records
 
@@ -41,6 +43,7 @@ Technology decisions are ADRs, design, spatial and material decisions are DDRs. 
 | [DDR-0003](ddr/0003-placements-in-plan-units-per-space.md) | Place entities by stored plan coordinates per space, in world units, with pins that never move | proposed | 2026-11-04 |
 | [DDR-0004](ddr/0004-entity-form-with-media-faces-derived.md) | Show each entity as a form with its media projected onto it, faces filled automatically, proportion from the cover | proposed | 2026-11-06 |
 | [DDR-0005](ddr/0005-entity-as-thumbnail-form-with-satellite-forms.md) | Show an entity as one thumbnail form with its media as satellite forms around it, and let forms have more than six sides | proposed | 2026-11-06 |
+| [DDR-0006](ddr/0006-studio-type-director-and-letter-gothic.md) | Set the studio in Director for titles and Letter Gothic for working text, on the field's palette | proposed | 2026-11-18 |
 
 ## How to add one
 

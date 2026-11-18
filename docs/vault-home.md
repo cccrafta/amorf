@@ -1,7 +1,7 @@
 ---
 title: amorf docs vault
-updated: 2026-11-06
-last_verified: 2026-11-06
+updated: 2026-11-18
+last_verified: 2026-11-18
 ---
 
 # amorf docs
@@ -23,6 +23,7 @@ Start here. Read only the page that matches the task; each page is self-containe
 | [design/entity-view.md](design/entity-view.md) | changing the entity view: fixed frame, tools drawer, authored placement, edge-to-neighbour navigation (built) |
 | [design/backend.md](design/backend.md) | scoping or building `apps/api`; what each ontology part needs stored; who writes what (planned) |
 | [design/backend-decisions.md](design/backend-decisions.md) | choosing the backend stack: platform, database, auth, media pipeline, studio, search (proposed decision points) |
+| [design/studio-v0.md](design/studio-v0.md) | building the thin studio before the backend: entity forms, image upload, manifest, field pins on R2 behind Access (step 1 built: skeleton live behind Access) |
 | [design/one-world-many-cameras.md](design/one-world-many-cameras.md) | the site's direction: one WebGPU 3D world with field, plan and journey as cameras, 3D entity views, recorded visits (planned epic) |
 | [backlog.md](backlog.md) | picking up planned work or feedback items; adding a to-do |
 | [open-questions.md](open-questions.md) | a choice is raised but not made; recording or closing an open question (`OQ-NNN`) |
@@ -33,7 +34,7 @@ Start here. Read only the page that matches the task; each page is self-containe
 
 amorf is a design-research project with architects. Its thesis: structure is the primary ornament (structural necessity, material properties, layout logic and honest joinery are the ornament), process matters more than the final artifact (failed experiments and trade-offs are kept), and decisions are backed by recorded reasoning. Theory is in [../research/theory/manifesto.md](../research/theory/manifesto.md).
 
-- A pnpm workspaces monorepo ([ADR-0008](decisions/adr/0008-pnpm-workspaces-monorepo.md)): `apps/web` (the site), `packages/` (empty until a second consumer exists), `research/`, `docs/`. A backend app (`apps/api`) is expected later.
+- A pnpm workspaces monorepo ([ADR-0008](decisions/adr/0008-pnpm-workspaces-monorepo.md)): `apps/web` (the site), `apps/studio` (the authoring app, [ADR-0021](decisions/adr/0021-thin-studio-on-access-and-r2-before-the-backend.md)), `packages/` (empty until a second consumer exists), `research/`, `docs/`. A backend app (`apps/api`) is expected later.
 - `apps/web` is Next.js 16 App Router, exported as static files (`output: "export"`), served by a Cloudflare Worker (static assets). One page (`app/page.tsx`) renders the `Field` client component, a spatial browser of entities. There is no server code and no API.
 - Large media and all entities live in a Cloudflare R2 bucket, not in git.
 - Package manager is pnpm. Run commands from the repository root (`pnpm dev`, `pnpm build`, `pnpm entities:check`); they delegate to `@amorf/web`.

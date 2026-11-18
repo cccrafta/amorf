@@ -1,0 +1,47 @@
+/* Studio tokens: the only place raw color values and font stacks live in apps/studio (DDR-0006). */
+
+@font-face {
+  font-family: "Director";
+  src: url("./fonts/director/Director-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Director";
+  src: url("./fonts/director/Director-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Director";
+  src: url("./fonts/director/Director-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* Letter Gothic Std is a commercial Adobe font: never bundled in this public repository, used only where installed. */
+@font-face {
+  font-family: "Studio Letter Gothic";
+  src: local("Letter Gothic Std"), local("LetterGothicStd");
+  font-weight: 400;
+}
+@font-face {
+  font-family: "Studio Letter Gothic";
+  src: local("Letter Gothic Std Bold"), local("LetterGothicStd-Bold");
+  font-weight: 700;
+}
+
+:root {
+  /* same values as the field palette in apps/web/app/tokens.css */
+  --studio-bg: #1e1e1e;
+  --studio-ink: #bdbab0;
+  --studio-blue: #4a63c4;
+  --studio-red: #e2553a;
+  --studio-line: #8a8876;
+  --studio-mist: #7a7a7a;
+  --studio-frame: #2b2b2b;
+  --studio-bg-dark: #111111;
+
+  --font-display: "Director", "Times New Roman", Times, serif;
+  --font-body: "Studio Letter Gothic", "Letter Gothic", "Courier New", monospace;
+}

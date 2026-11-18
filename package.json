@@ -5,12 +5,16 @@
   "scripts": {
     "dev": "pnpm --filter @amorf/web run dev",
     "build": "pnpm --filter @amorf/web run build",
-    "lint": "pnpm --filter @amorf/web run lint",
+    "lint": "pnpm -r run lint",
     "preview": "pnpm --filter @amorf/web run preview",
     "deploy": "pnpm --filter @amorf/web run deploy",
     "entities:probe": "pnpm --filter @amorf/web run entities:probe",
     "entities:check": "pnpm --filter @amorf/web run entities:check",
+    "entities:derive": "pnpm --filter @amorf/web run entities:derive",
     "entities:sync": "pnpm --filter @amorf/web run entities:sync",
+    "studio:dev": "pnpm --filter @amorf/studio run dev",
+    "studio:seed": "pnpm --filter @amorf/studio run seed:local",
+    "studio:deploy": "pnpm --filter @amorf/studio run deploy",
     "research:index": "node scripts/research-index.mjs",
     "research:check": "node scripts/research-index.mjs --check"
   }

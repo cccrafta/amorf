@@ -1,0 +1,155 @@
+/* Studio base styles: page frame, type roles, forms and the entity table. Values come from tokens.css. */
+
+html,
+body {
+  margin: 0;
+  background: var(--studio-bg);
+  color: var(--studio-ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+
+a {
+  color: inherit;
+}
+
+.studio {
+  max-width: 64rem;
+  padding: 2rem;
+}
+
+.studio-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--studio-line);
+}
+
+.studio-title,
+.studio-title-2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--studio-blue);
+  text-decoration: none;
+}
+
+.studio-title {
+  font-size: 2rem;
+}
+
+.studio-title-2 {
+  font-size: 1.6rem;
+}
+
+.studio-label {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--studio-blue);
+}
+
+.studio-note {
+  color: var(--studio-red);
+}
+
+.studio-error {
+  color: var(--studio-red);
+}
+
+.studio-dim {
+  color: var(--studio-mist);
+  font-size: 0.85rem;
+}
+
+.studio-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.studio-search {
+  flex: 1;
+}
+
+.studio-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.studio-table td {
+  padding: 0.4rem 0.75rem 0.4rem 0;
+  border-bottom: 1px solid var(--studio-frame);
+  vertical-align: baseline;
+}
+
+.studio-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.studio-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 44rem;
+}
+
+.studio-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.studio-input {
+  font: inherit;
+  color: var(--studio-ink);
+  background: var(--studio-bg-dark);
+  border: 1px solid var(--studio-frame);
+  border-radius: 0;
+  padding: 0.4rem 0.5rem;
+}
+
+.studio-input:focus {
+  outline: none;
+  border-color: var(--studio-line);
+}
+
+textarea.studio-input {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.studio-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.studio-button {
+  font: inherit;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--studio-ink);
+  background: none;
+  border: 1px solid var(--studio-line);
+  border-radius: 0;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+}
+
+.studio-button:hover:not(:disabled) {
+  color: var(--studio-bg);
+  background: var(--studio-ink);
+}
+
+.studio-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
