@@ -23,6 +23,9 @@ const SAT_SLIDERS: [keyof LabOptions, string, number][] = [
   ["satRadius", "sat radius", 1.6], ["satSize", "sat size", 3], ["satSpeed", "sat speed", 4],
 ];
 
+// Milliseconds since navigation as seconds, or a dash until reached.
+const secs = (ms: number | null) => (ms === null ? "–" : (ms / 1000).toFixed(1) + " s");
+
 export default function FormsLab({ forms }: { forms: FormFaces[] }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const lab = useRef<Lab | null>(null);
@@ -63,6 +66,11 @@ export default function FormsLab({ forms }: { forms: FormFaces[] }) {
             : !status ? "starting…"
             : `${status.backend} · ${status.forms} forms · ${status.sats} satellites · ${status.loaded}/${status.pictures} pictures · ${status.layers} layers · ${status.draws} draws`}
         </div>
+        {status && (
+          <div>
+            {`load · ${status.requests} requests · ${(status.bytes / 1048576).toFixed(1)} MB · first frame ${secs(status.frameMs)} · pictures ${secs(status.picturesMs)}`}
+          </div>
+        )}
         {forms.length === 0 && <div>no entities loaded: blank forms only</div>}
         <label className="flex items-center gap-2">
           <span>cube</span>

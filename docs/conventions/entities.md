@@ -1,7 +1,7 @@
 ---
 title: Entities and entity.json
-updated: 2026-11-05
-last_verified: 2026-11-05
+updated: 2026-11-15
+last_verified: 2026-11-15
 status: entities in apps/web/content/entities/, synced to R2 with entities:sync, loaded by the app at build time (apps/web/lib/data/entities.ts)
 ---
 
@@ -27,7 +27,7 @@ apps/web/content/                  gitignored, on the editor's disk
   .sync-manifest.json             written by entities:sync; hashes of what is already in R2
 docs/templates/entity.json        empty template (in git)
 docs/templates/entity.schema.json JSON Schema (in git)
-apps/web/scripts/entities.mjs      probe, check and sync (in git)
+apps/web/scripts/entities.mjs      probe, check, derive and sync (in git)
 ```
 
 - **All content media belongs to an entity.** There is no shared media folder: a video, image or sound always sits in the folder of the entity it belongs to. `apps/web/public/media/` is retired; the interview video that was there is now the entity `souto-de-moura-interview`. `apps/web/public/` holds only site assets (favicon, icons).
@@ -54,8 +54,10 @@ Submissions arrive as folders in `raw_entities/draft/` (repository root, gitigno
 3. Copy or convert the files to publish into the folder, renamed by the rules above, and list them in `media[]`.
 4. `pnpm entities:probe` writes the generated fields (`mime`, `bytes`, `width`, `height`, `duration`). Never type them by hand.
 5. `pnpm entities:check` must report 0 errors. It checks required fields, id equals folder, kebab-case names, `kind` values, referenced files exist, `related` ids exist, orphan files, stale generated fields, non-web formats, and `layout` (refs resolve, no overlap, nothing past `board.cols`; a warning when `title` or `meta` starts outside the entry frame, or a `media[].at` is still used).
-6. `pnpm entities:sync` (with `CLOUDFLARE_ACCOUNT_ID` set, see `deployment.md`) runs the check, uploads changed files to `amorf-media/entities/<id>/`, and writes `entities/index.json`. Media get `Cache-Control: public, max-age=31536000, immutable`; `entity.json` and `index.json` get `max-age=60`.
+6. `pnpm entities:sync` (with `CLOUDFLARE_ACCOUNT_ID` set, see `deployment.md`) runs the check, derives (below), uploads changed files to `amorf-media/entities/<id>/`, and writes `entities/index.json`. Media get `Cache-Control: public, max-age=31536000, immutable`; `entity.json` and `index.json` get `max-age=60`.
 7. Rebuild and deploy (`pnpm run deploy`): the page reads the entities at build time, so a deploy is needed to show changes.
+
+Derivatives ([ADR-0020](../decisions/adr/0020-small-picture-derivatives-at-publish.md)): `pnpm entities:derive`, also run by `sync`, writes a small WebP of each media item's picture (a video's poster, any other item's file; items without a file are skipped) to `<id>/derived/<stem>.<hash10>.s256.webp` and records it in `media[].derived`. It needs ImageMagick 7 (`magick`). `s256`: short edge 256 px, long edge at most 512 px, never upscaled, ICC profile kept. `<hash10>` hashes the source and the tier's arguments, so changing either gives a new name; never overwrite a published derivative under its old name. A picture that fails is warned about and left without `derived`. `.webp` files in `derived/` that no media item names are deleted locally. `derived/` is not an orphan, and `check` warns when a named derivative is missing. Within an entity, `sync` uploads the files before `entity.json`.
 
 Editors with JSON Schema support validate and autocomplete through the `$schema` line in each `entity.json`; `entities:check` does not read it.
 
@@ -108,6 +110,7 @@ Each item has exactly one of `file` or `embed`. Fields follow schema.org `MediaO
 | `focal` | you | `[x, y]` (0–1) point to keep in view when cropped. |
 | `at` | you | Deprecated: use `layout.items`. `[x, y]` (0–1) placement. Honoured only when some `layout.items` entry is authored with `col` and `row` and the file is not listed; ignored by the default radial packing. Not for new content; `entities:check` warns. |
 | `mime`, `bytes`, `width`, `height`, `duration` | `entities:probe` | Generated from the file; never typed. |
+| `derived` | `entities:derive` | `{ "s256": "derived/<stem>.<hash10>.s256.webp" }`, relative to the entity folder; never typed. The forms lab loads it instead of the full picture. |
 
 External video example: `{ "embed": { "provider": "vimeo", "url": "https://vimeo.com/185081713" }, "poster": "talk-poster.jpg", "kind": "video", "caption": "…" }`.
 
@@ -185,6 +188,6 @@ The earlier plain-text `template.txt` fields map to JSON like this, and `entity.
 
 - Showing `audio`, `document` and `embed` media in the field: they are stored but `apps/web/lib/data/entities.ts` skips them (no renderer yet).
 - Deleting files from R2 when they are removed locally: `entities:sync` only uploads.
-- Web derivatives (resized WebP/AVIF, small placeholder) generated from `originals/`. Today `apps/web/content/entities/` holds files as found, renamed; some are large PNG screenshots (up to 4.5 MB).
+- Web derivatives of the published files themselves (resized WebP/AVIF for the DOM field and the entity view) generated from `originals/`. Today `apps/web/content/entities/` holds files as found, renamed; some are large PNG screenshots (up to 4.5 MB). Only the 256 px `derived` tier exists, used by the forms lab.
 
 `mediaUrl()` (`apps/web/lib/media/url.ts`) already maps `/entities/<id>/<file>` to the R2 base, keeping the prefix.

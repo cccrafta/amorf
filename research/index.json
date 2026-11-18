@@ -504,6 +504,41 @@
         "composition"
       ],
       "path": "experiments/0018-satellite-forms-around-the-entity-form/README.md"
+    },
+    {
+      "id": "EXP-0019",
+      "kind": "experiment",
+      "title": "Does the forms lab load fast when it fetches 256 px derivatives instead of full pictures?",
+      "date": "2026-11-15",
+      "status": "running",
+      "parts": [
+        "field"
+      ],
+      "question": "Does fetching 256 px WebP derivatives instead of full pictures make the forms lab load fast, or does the request count still decide the load time?",
+      "tags": [
+        "loading",
+        "performance",
+        "publish"
+      ],
+      "path": "experiments/0019-field-load-from-small-derivatives/README.md"
+    },
+    {
+      "id": "EXP-0020",
+      "kind": "experiment",
+      "title": "Do forms placed over the field's cards read as the field's objects without losing its navigation?",
+      "date": "2026-11-18",
+      "status": "running",
+      "parts": [
+        "field",
+        "entity"
+      ],
+      "question": "When the field's entity cards are replaced by 3D forms anchored to the same places, do the forms read as the field's objects while pan, zoom, wrap, click and focus behave as before?",
+      "tags": [
+        "forms",
+        "field",
+        "anchors"
+      ],
+      "path": "experiments/0020-forms-in-the-field/README.md"
     }
   ]
 }

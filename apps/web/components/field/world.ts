@@ -8,6 +8,7 @@ import type Field from "./Field";
 import { inSpace } from "./spaces";
 import { fitCamera, eyeAt } from "./ground-math";
 import { makeGround, type Ground } from "./ground";
+import { reconcileForms, disposeForms } from "./forms";
 
 export type Three = typeof ThreeNS;
 export type Tsl = typeof import("three/tsl");
@@ -68,6 +69,7 @@ export function initWorld(f: Field) {
 export function disposeWorld(f: Field) {
   const g = f.gl;
   f.gl = null;
+  disposeForms(f);
   if (!g) return;
   g.ground.dispose();
   g.renderer.dispose();
@@ -81,25 +83,30 @@ function fit(f: Field, g: WorldRt, W: number, H: number, dpr: number) {
   g.key = "";
 }
 
-// Called every frame from frame(): drawn only when the camera, the window or the visibility changed. render() is the
-// synchronous call; it is valid because init() resolved before f.gl was set.
-export function paintWorld(f: Field) {
+// Called every frame from frame(): drawn only when the camera, the window, the visibility or the forms changed (every frame
+// while forms move). render() is the synchronous call; it is valid because init() resolved before f.gl was set.
+export function paintWorld(f: Field, dt: number) {
   const g = f.gl;
   if (!g) { initWorld(f); return; }
   if (!g.canvas.isConnected) { disposeWorld(f); initWorld(f); return; }
+  reconcileForms(f);
   const hide = inSpace(f);
   if (g.canvas.style.display !== (hide ? "none" : "block")) g.canvas.style.display = hide ? "none" : "block";
   if (hide) return;
   // The world leaves with the field when an entity is opened, like the cards do.
   const op = (1 - f.ix.depth).toFixed(2);
   if (g.canvas.style.opacity !== op) g.canvas.style.opacity = op;
+  // Nothing of the world shows behind an opened entity; the key is cleared so the first visible frame draws.
+  if (f.ix.depth >= 0.98) { g.key = ""; return; }
 
   const W = window.innerWidth, H = window.innerHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
   if (W !== g.w || H !== g.h || dpr !== g.dpr) fit(f, g, W, H, dpr);
 
   const cam = f.cam, eye = eyeAt(cam.x, cam.z, cam.yaw, f.P);
-  const key = eye.x.toFixed(1) + "|" + eye.z.toFixed(1) + "|" + cam.yaw.toFixed(2);
-  if (key === g.key) return;
+  const fm = f.fm;
+  if (fm) fm.step(dt, eye.rotY);
+  const key = eye.x.toFixed(1) + "|" + eye.z.toFixed(1) + "|" + cam.yaw.toFixed(2) + "|" + (fm ? fm.rev : 0);
+  if (key === g.key && !(fm && fm.moving())) return;
   g.key = key;
 
   g.ground.place(eye.x, eye.z);

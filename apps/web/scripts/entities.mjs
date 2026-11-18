@@ -1,6 +1,6 @@
 // Entities: probes media files into entity.json (mime, size, dimensions, duration) and checks every entity against docs/conventions/entities.md.
-// Usage: node scripts/entities.mjs probe|check [content/entities]  (default: apps/web/content/entities, resolved from this file)
-import { readdirSync, readFileSync, writeFileSync, statSync, existsSync } from "node:fs";
+// Usage: node scripts/entities.mjs probe|check|derive|sync [content/entities]  (default: apps/web/content/entities, resolved from this file)
+import { readdirSync, readFileSync, writeFileSync, statSync, existsSync, mkdirSync, rmSync, renameSync } from "node:fs";
 import { join, extname, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
@@ -16,11 +16,60 @@ const MIME = {
 };
 // Formats a browser cannot be relied on to show; they must be converted before publishing.
 const NOT_WEB = ["jxl", "mov", "wav"];
+// Picture formats ImageMagick reads into a derivative; the first frame of a gif is used.
+const IMAGE = ["jpg", "jpeg", "png", "gif", "webp", "avif"];
+// Derivative tiers by name, each a list of ImageMagick arguments. s256: short edge 256 px, never upscaled, so a 256² square
+// crop (the field's texture layer, LAYER in components/forms-lab/config.ts) keeps full resolution; the long edge is capped at
+// 512 so a long strip stays small. The ICC profile is kept (sources include Adobe RGB and display profiles), the rest dropped.
+const TIERS = { s256: ["-resize", "256x256^>", "-resize", "512x512>", "+profile", "!icc,*", "-quality", "80"] };
 
 const ids = existsSync(root) ? readdirSync(root).filter(d => statSync(join(root, d)).isDirectory()).sort() : [];
 const load = id => JSON.parse(readFileSync(join(root, id, "entity.json"), "utf8"));
 const save = (id, e) => writeFileSync(join(root, id, "entity.json"), JSON.stringify(e, null, 2) + "\n");
 const extOf = f => extname(f).slice(1).toLowerCase();
+const hash = file => createHash("sha1").update(readFileSync(file)).digest("hex");
+
+// Writes small WebP copies of each media item's picture to <id>/derived/ and records them in media[].derived. The picture is
+// the one the field shows (a video's poster, any other item's file), and only items with a file, as lib/data/entities.ts
+// keeps no others. The name hashes the source bytes with the tier's arguments, so a changed picture or recipe gets a new
+// name and no R2 key ever gets new bytes under its immutable cache. A failed item loses its derived field (the lab then
+// loads the full picture) instead of stopping the run. Returns the number of files made; unnamed .webp files are deleted.
+function derive(id, e) {
+  const dir = join(root, id, "derived"), keep = new Set();
+  let made = 0;
+  for (const m of e.media || []) {
+    const src = m.file && (m.kind === "video" ? m.poster : m.file);
+    if (!src || !IMAGE.includes(extOf(src)) || !existsSync(join(root, id, src))) { delete m.derived; continue; }
+    const bytes = readFileSync(join(root, id, src)), stem = src.slice(0, -extname(src).length), derived = {};
+    try {
+      for (const [tier, args] of Object.entries(TIERS)) {
+        const h = createHash("sha1").update(bytes).update(JSON.stringify(args)).digest("hex").slice(0, 10);
+        const name = `${stem}.${h}.${tier}.webp`, out = join(dir, name);
+        keep.add(name);
+        if (!existsSync(out)) {
+          mkdirSync(dir, { recursive: true });
+          // Written under a temporary name and renamed, so a killed run never leaves a truncated file under a final name.
+          execFileSync("magick", [join(root, id, src) + "[0]", "-auto-orient", ...args, out + ".tmp.webp"], { stdio: ["ignore", "ignore", "pipe"] });
+          renameSync(out + ".tmp.webp", out);
+          made++;
+        }
+        derived[tier] = `derived/${name}`;
+      }
+      m.derived = derived;
+    } catch (err) {
+      delete m.derived;
+      console.log(`warn  ${id}: derivative of "${src}" failed (${String(err.stderr || err.message).trim().split("\n")[0]})`);
+    }
+  }
+  if (existsSync(dir)) for (const f of readdirSync(dir)) if (f.endsWith(".webp") && !keep.has(f)) rmSync(join(dir, f), { force: true });
+  return made;
+}
+
+// Every run that derives needs ImageMagick 7; fail once with a clear message instead of a warning per picture.
+function needMagick() {
+  try { execFileSync("magick", ["-version"], { stdio: "ignore" }); }
+  catch { console.log("error ImageMagick 7 (magick) is not on the PATH; install it (brew install imagemagick) to derive pictures"); process.exit(1); }
+}
 
 function probe(path) {
   try {
@@ -109,8 +158,9 @@ if (cmd === "probe") {
       }
       if (m.file && m.mime === undefined) warnings.push(at(`${where} has no generated fields; run probe`));
       if (m.embed && !m.poster) warnings.push(at(`${where} embed has no local poster`));
+      for (const d of Object.values(m.derived || {})) if (!existsSync(join(root, id, d))) warnings.push(at(`${where} derivative "${d}" is missing; run derive`));
     });
-    for (const f of readdirSync(join(root, id))) if (!used.has(f) && !f.startsWith(".") && f !== "originals") warnings.push(at(`orphan file "${f}" is not referenced by entity.json`));
+    for (const f of readdirSync(join(root, id))) if (!used.has(f) && !f.startsWith(".") && f !== "originals" && f !== "derived") warnings.push(at(`orphan file "${f}" is not referenced by entity.json`));
     if (e.layout) checkLayout(e, at, errors, warnings);
     else (e.media || []).forEach((m, i) => { if (m.at) warnings.push(at(`media[${i}].at is deprecated; place it with layout.items`)); });
   }
@@ -118,17 +168,25 @@ if (cmd === "probe") {
   errors.forEach(e => console.log("error " + e));
   console.log(`${ids.length} entities, ${errors.length} errors, ${warnings.length} warnings`);
   process.exit(errors.length ? 1 : 0);
+} else if (cmd === "derive") {
+  needMagick();
+  let made = 0;
+  for (const id of ids) { const e = load(id); made += derive(id, e); save(id, e); }
+  console.log(`derived ${ids.length} entities, ${made} files made`);
 } else if (cmd === "sync") {
-  // Uploads each entity's published files (never originals/) to R2 under entities/<id>/, then entities/index.json.
-  // Media is immutable by name, so it caches for a year; the JSON changes, so it caches for a minute.
+  // Derives, then uploads each entity's published files (never originals/) to R2 under entities/<id>/, then entities/index.json.
+  // Media is immutable by name, so it caches for a year; the JSON changes, so it caches for a minute. Within an entity the
+  // files go before entity.json, so a published entity.json never names a derivative that is not in the bucket yet.
+  needMagick();
   const BUCKET = "amorf-media", MANIFEST = join(root, "..", ".sync-manifest.json");
   const done = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, "utf8")) : {};
   const put = (key, file, type, cache) => execFileSync("pnpm", ["exec", "wrangler", "r2", "object", "put", `${BUCKET}/${key}`, "--file", file, "--content-type", type, "--cache-control", cache, "--remote"], { stdio: ["ignore", "ignore", "inherit"] });
-  const hash = file => createHash("sha1").update(readFileSync(file)).digest("hex");
   let sent = 0;
   for (const id of ids) {
     const e = load(id);
-    const files = [...new Set((e.media || []).flatMap(m => [m.file, m.poster]).filter(Boolean))];
+    derive(id, e);
+    save(id, e);
+    const files = [...new Set((e.media || []).flatMap(m => [m.file, m.poster, ...Object.values(m.derived || {})]).filter(Boolean))];
     for (const f of [...files, "entity.json"]) {
       const p = join(root, id, f), key = `entities/${id}/${f}`, h = hash(p);
       if (done[key] === h) continue;
@@ -144,6 +202,6 @@ if (cmd === "probe") {
   put("entities/index.json", index, "application/json", "public, max-age=60");
   console.log(`synced ${ids.length} entities, ${sent} files uploaded, index.json written`);
 } else {
-  console.log("usage: node scripts/entities.mjs probe|check|sync [dir]");
+  console.log("usage: node scripts/entities.mjs probe|check|derive|sync [dir]");
   process.exit(2);
 }

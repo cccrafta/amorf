@@ -11,6 +11,7 @@
     "deploy": "pnpm run build && wrangler deploy",
     "entities:probe": "node scripts/entities.mjs probe",
     "entities:check": "node scripts/entities.mjs check",
+    "entities:derive": "node scripts/entities.mjs derive",
     "entities:sync": "node scripts/entities.mjs check && node scripts/entities.mjs sync"
   },
   "dependencies": {

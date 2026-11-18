@@ -3,9 +3,10 @@ import type { V, Shown } from "../types";
 import { TRACES_ENABLED } from "../notes";
 
 // One HUD control: label, then a flat square that carries a cross while the thing is on.
-function renderToggle(label: string, on: boolean, onClick: () => void, onKeyDown: (e: React.KeyboardEvent) => void) {
+// disabled: the row stays but does nothing (FORMS while the world is off).
+function renderToggle(label: string, on: boolean, onClick: () => void, onKeyDown: (e: React.KeyboardEvent) => void, disabled = false) {
   return (
-    <div role="button" tabIndex={0} aria-pressed={on} onClick={onClick} onKeyDown={onKeyDown} className="field-label field-hover-accent" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10.5, cursor: "pointer", outline: "none", transition: "color 400ms ease" }}>
+    <div role="button" tabIndex={disabled ? -1 : 0} aria-pressed={on} aria-disabled={disabled} onClick={disabled ? undefined : onClick} onKeyDown={disabled ? undefined : onKeyDown} className="field-label field-hover-accent" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10.5, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.35 : 1, pointerEvents: disabled ? "none" : undefined, outline: "none", transition: "color 400ms ease" }}>
       {label}
       <span className="field-check" data-on={on ? "1" : "0"} />
     </div>
@@ -27,6 +28,8 @@ export function renderHud(v: V) {
         {renderToggle("PLAN", false, v.onPlan, v.onPlanKey)}
         {renderToggle(v.tableLabel, v.tableOn, v.onTable, v.onTableKey)}
         {renderToggle(v.tracksLabel, v.tracksOn, v.onTracks, v.onTracksKey)}
+        {renderToggle("FORMS", v.formsOn, v.onForms, v.onFormsKey, v.formsDisabled)}
+        {v.formsOn && renderToggle("TUNE FORMS", v.formsPanel, v.onFormsPanel, v.onFormsPanelKey)}
       </div>
       {v.askOpen && (
         <form onSubmit={v.onSubmit} style={{ animation: "am-in 400ms ease both" }}>

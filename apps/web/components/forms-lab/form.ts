@@ -62,12 +62,22 @@ export type FormUniforms = {
   // 1 when the opened entity opens as a board (its form and satellites then fly to it, flight.ts), else 0; turnAt is the
   // orbit clock when that flight began, from which a flying satellite picks the quarter turn it settles to.
   board: U; turnAt: U;
+  // Field use (anchored mode): turnOn is 1 for the quarter turn, 0 for none; spin is 1 for a satellite's own turn, 0 for none;
+  // lightYaw turns the one light about y, so the field can keep it fixed to the camera.
+  turnOn: U; spin: U; lightYaw: U;
   m: { amp: Record<Channel, U>; t: Record<Channel, U>; spread: U; nearCalm: U; hold: U };
 } & Record<(typeof OUTLINE)[number], U>;
 
-export type Forms = { mesh: ThreeNS.InstancedMesh; u: FormUniforms; dispose: () => void };
+// Anchored mode (the field, EXP-0020): the world is not the lab's grid, so each entity's centre is written by the CPU every
+// frame from its DOM card. set(i, …) writes main form i and its satellites: x, y, z of the centre in the eye frame, w the opacity
+// (0 hides it), yaw of the form's front and k the scale from lab units to world units; it returns whether anything changed.
+// get(i) reads them back. fog is the colour a fading form blends into.
+export type Anchor = { x: number; y: number; z: number; w: number; yaw: number; k: number };
+export type Anchors = { set: (i: number, a: Anchor) => boolean; get: (i: number) => Anchor; fog: ThreeNS.Color };
+export type Forms = { mesh: ThreeNS.InstancedMesh; u: FormUniforms; an: Anchors | null; dispose: () => void };
 
-export function makeForms(THREE: Three, TSL: Tsl, places: FormPlace[], tex: ThreeNS.DataArrayTexture, orbit: Orbit, flight: Flight): Forms {
+// anchored: the number of main forms, when each is anchored to a card (see Anchors); omit it for the lab's own grid.
+export function makeForms(THREE: Three, TSL: Tsl, places: FormPlace[], tex: ThreeNS.DataArrayTexture, orbit: Orbit, flight: Flight, anchored?: number): Forms {
   const {
     float, int, vec2, vec3, vec4, uniform, positionGeometry, normalGeometry, positionWorld, attribute, instancedBufferAttribute,
     varying, texture, uv, mix, normalize, tan, sin, cos, floor, fract, smoothstep, atan, cameraPosition, select, max, abs, dot,
@@ -113,7 +123,7 @@ export function makeForms(THREE: Three, TSL: Tsl, places: FormPlace[], tex: Thre
     turnT: uniform(0), shape: uniform(0), mixed: uniform(0), settle: uniform(1), test: uniform(0),
     taper: uniform(0), twist: uniform(0), bend: uniform(0), relief: uniform(0), cut: uniform(0),
     focus: uniform(-1), open: uniform(0), unfold: uniform(0), explode: uniform(0), recede: uniform(0), drift: uniform(1),
-    board: uniform(0), turnAt: uniform(0),
+    board: uniform(0), turnAt: uniform(0), turnOn: uniform(1), spin: uniform(1), lightYaw: uniform(0),
     // The motion matrix: amp and clock per channel, then the global rows. Values arrive from Motion through the lab.
     m: {
       amp: { pitch: uniform(0), roll: uniform(0), yaw: uniform(0), bob: uniform(0), sway: uniform(0), hover: uniform(0) },
@@ -128,6 +138,30 @@ export function makeForms(THREE: Three, TSL: Tsl, places: FormPlace[], tex: Thre
   // The entity a form or satellite belongs to; ownerFocused is true for the focused form and for its satellites.
   const owner = select(isSat, iE.y, instanceIndex.toFloat());
   const ownerFocused = owner.sub(u.focus).abs().lessThan(0.5);
+  // Anchored, the anchor rides in the instance buffer, in slots the field leaves unused (WebGPU allows 16 vertex attributes and
+  // the lab uses all of them): D (own outline, ignored while mixed is 0) holds x, y, z, w, and C.x, C.y (the lab's grid place)
+  // hold yaw and k. Every satellite carries a copy of its form's anchor, written with it.
+  const kids: number[][] = Array.from({ length: anchored ?? 0 }, () => []);
+  if (anchored) places.forEach((p, j) => { if (p.sat) kids[p.sat.parent].push(j); });
+  const an: Anchors | null = anchored ? {
+    fog: new THREE.Color(),
+    get: i => { const o = i * STRIDE; return { x: data[o + 12], y: data[o + 13], z: data[o + 14], w: data[o + 15], yaw: data[o + 8], k: data[o + 9] }; },
+    set: (i, a) => {
+      const o = i * STRIDE;
+      const f = Math.fround;
+      if (data[o + 12] === f(a.x) && data[o + 13] === f(a.y) && data[o + 14] === f(a.z) && data[o + 15] === f(a.w) && data[o + 8] === f(a.yaw) && data[o + 9] === f(a.k)) return false;
+      for (const j of [i, ...kids[i]]) {
+        const q = j * STRIDE;
+        data[q + 12] = a.x; data[q + 13] = a.y; data[q + 14] = a.z; data[q + 15] = a.w; data[q + 8] = a.yaw; data[q + 9] = a.k;
+      }
+      buf.needsUpdate = true;
+      return true;
+    },
+  } : null;
+  if (anchored) for (let i = 0; i < n; i++) data.fill(0, i * STRIDE + 12, i * STRIDE + 16);
+  const aPos = anchored ? iD : null;
+  // kk scales lab units to the field's pixels, yawBase turns the form's front to its card's.
+  const kk = anchored ? iC.y : float(1), yawBase = anchored ? iC.x : float(0);
   // Opened as a board, the focused form and each of its satellites with a board place fly there in motion (flight.ts): w
   // calms tumble, turn and shape over the first FLAT of the flight, press flattens the cube over the last PRESS of that,
   // and from FLAT on the cube is hidden behind its card (board-mesh.ts), which starts as exactly its flat face.
@@ -144,7 +178,7 @@ export function makeForms(THREE: Three, TSL: Tsl, places: FormPlace[], tex: Thre
   const openO = select(ownerFocused, u.open, float(0));
   const calmO = float(1).sub(openO);
   const calmT = select(fly, float(1).sub(w), calmO);
-  const pick = (g: typeof u.shape, own: ThreeNS.Node<"float">) => mix(g, own, u.mixed).mul(calmT);
+  const pick = (g: typeof u.shape, own: ThreeNS.Node<"float">) => (anchored ? g : mix(g, own, u.mixed)).mul(calmT);
   const shape = pick(u.shape, iB.z);
   const taper = pick(u.taper, iD.x), twist = pick(u.twist, iD.y), bend = pick(u.bend, iD.z), relief = pick(u.relief, iD.w);
   const cut = pick(u.cut, iE.x);
@@ -192,7 +226,7 @@ export function makeForms(THREE: Three, TSL: Tsl, places: FormPlace[], tex: Thre
   const q = u.turnT.add(iB.w).div(TURN_PERIOD);
   const quarter = floor(q).add(smoothstep(u.m.hold, 1, fract(q))).mul(PI.div(2));
   // A satellite turns steadily at its own slow rate on the orbit clock, not in quarter turns (board-mesh.ts follows it).
-  const cadence = select(isSat, iB.w.add(iH.y.mul(orbit.u.t)), quarter);
+  const cadence = select(isSat, iB.w.add(iH.y.mul(orbit.u.t).mul(u.spin)), quarter.mul(u.turnOn)).add(yawBase);
   // Settle: near the camera the angle eases to the one that points the front face (+z) at the camera, along the short way.
   const toCam = cameraPosition.xz.sub(vec2(iC.x, iC.y));
   // The focused form's target eases from the camera's direction to the board's (flight.yaw) as it calms, the short way, so
@@ -237,7 +271,7 @@ export function makeForms(THREE: Three, TSL: Tsl, places: FormPlace[], tex: Thre
   const toZ = vec2(sin(faceTurn).negate(), cos(faceTurn));
   const axis = select(abs(toZ.y).greaterThanEqual(abs(toZ.x)), vec3(0, 0, sign(toZ.y)), vec3(sign(toZ.x), 0, 0));
   const pressed = boxed.add(axis.mul(D.sub(dot(boxed, axis)).mul(press)));
-  const local = pressed.mul(float(1).sub(gone)).mul(satK);
+  const local = pressed.mul(float(1).sub(gone)).mul(satK).mul(kk);
 
   // The form rests on the ground at every shape: lifted by its own half-height, which grows toward the sphere.
   // The unfolded net reaches 3H + 2D below its front's centre, so it rises by 2H + 2D to stay above the ground.
@@ -253,7 +287,10 @@ export function makeForms(THREE: Three, TSL: Tsl, places: FormPlace[], tex: Thre
   // The instance matrix is identity and unused: positionNode replaces positionLocal after three's instancing transform,
   // so every per-instance value comes from the attributes above.
   const mat = new THREE.MeshBasicNodeMaterial({ side: THREE.DoubleSide });
-  const live = vec3(iC.x.add(sway.x).add(off.x), select(isSat, max(cy, iC.w.mul(satK)), cy), iC.y.add(sway.y).add(off.z));
+  // Anchored, the centre is the card's and the float and the orbit are offsets from it, in the card's scale.
+  const live = aPos
+    ? vec3(aPos.x.add(sway.x.add(off.x).mul(kk)), aPos.y.add(bob.add(off.y).mul(kk)), aPos.z.add(sway.y.add(off.z).mul(kk)))
+    : vec3(iC.x.add(sway.x).add(off.x), select(isSat, max(cy, iC.w.mul(satK)), cy), iC.y.add(sway.y).add(off.z));
   // A flying cube's centre follows its flight from where it is now; it turns into the board's frame as it calms (w) and
   // leans with the flight (flight.ts).
   const ahead = orbit.offset(params, (orbit.u.t as unknown as ThreeNS.Node<"float">).add(0.05)).sub(off0);
@@ -277,19 +314,24 @@ export function makeForms(THREE: Three, TSL: Tsl, places: FormPlace[], tex: Thre
   // A face with no picture (layer -1) and the unfilled parts of a picture (layer alpha 0) are transparent: discarded by
   // alpha test, not blended, so there is no draw-order sorting and the inside of the form shows through.
   const visible = select(layer.lessThan(-0.5), float(0), sample.a);
-  mat.opacityNode = select(inWindow.and(side.greaterThan(0.5)), float(0), visible);
+  const shown = select(inWindow.and(side.greaterThan(0.5)), float(0), visible);
+  const aW = aPos ? varying(aPos.w).setInterpolation(THREE.InterpolationSamplingType.FLAT) : null;
+  mat.opacityNode = aW ? select(aW.lessThan(0.01), float(0), shown) : shown;
   mat.alphaTest = 0.5;
 
   // Shading from the deformed surface itself (screen derivatives), so every deformation shades without its own normal
   // maths. The derivative's sign differs between the backends' framebuffer y, so the normal is turned toward the camera.
   const fn = normalize(cross(dFdx(positionWorld), dFdy(positionWorld)));
   const n2 = fn.mul(sign(dot(fn, cameraPosition.sub(positionWorld))));
-  const shade = float(SHADE_MIN).add(max(dot(n2, normalize(vec3(...LIGHT_DIR))), 0).mul(1 - SHADE_MIN));
-  mat.colorNode = vec4(sample.rgb.mul(shade), 1);
+  const light = flight.rotY(normalize(vec3(...LIGHT_DIR)), u.lightYaw as unknown as ThreeNS.Node<"float">);
+  const shade = float(SHADE_MIN).add(max(dot(n2, light), 0).mul(1 - SHADE_MIN));
+  // Anchored, a form far away or near a control fades into the fog instead of blending (it is drawn by alpha test).
+  const lit = sample.rgb.mul(shade);
+  mat.colorNode = vec4(aW && an ? mix(uniform(an.fog) as unknown as ThreeNS.Node<"vec3">, lit, aW) : lit, 1);
 
   const mesh = new THREE.InstancedMesh(geo, mat, n);
   // The bounds three computes come from the identity instance matrices, not from the attributes.
   mesh.frustumCulled = false;
 
-  return { mesh, u, dispose: () => { geo.dispose(); mat.dispose(); } };
+  return { mesh, u, an, dispose: () => { geo.dispose(); mat.dispose(); } };
 }

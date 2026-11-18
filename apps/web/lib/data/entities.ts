@@ -3,7 +3,7 @@ import type { EntityLayout, FieldAssoc, FieldObject } from "@/lib/field-data";
 
 type EntityMedia = {
   file?: string; embed?: unknown; kind: string; caption?: string; poster?: string;
-  width?: number; height?: number; focal?: [number, number]; at?: [number, number];
+  width?: number; height?: number; focal?: [number, number]; at?: [number, number]; derived?: { s256?: string };
 };
 type Entity = {
   id: string; title: string; kind: string; thumbnail?: string; year?: string; place?: string; creator?: string; creatorRole?: string;
@@ -33,7 +33,7 @@ function toFieldObject(e: Entity): FieldObject {
   const media: FieldObject["media"] = [];
   for (const m of e.media || []) {
     if (!m.file) continue;
-    const shape = { file: m.file, ar: m.width && m.height ? m.height / m.width : undefined, focal: m.focal, at: m.at };
+    const shape = { file: m.file, ar: m.width && m.height ? m.height / m.width : undefined, focal: m.focal, at: m.at, small: m.derived?.s256 ? at(m.derived.s256) : undefined };
     if (m.kind === "video") media.push({ kind: "video", cap: m.caption || "", src: at(m.file), poster: m.poster ? at(m.poster) : undefined, ...shape });
     else if (m.kind !== "audio" && m.kind !== "document") media.push({ kind: m.kind, cap: m.caption || "", img: at(m.file), ...shape });
   }

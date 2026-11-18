@@ -8,7 +8,8 @@ export type FieldObject = {
   p: string[];
   // file names the item in layout refs (media:<file>); ar is height / width from the probe; at is the deprecated
   // [x, y] placement fraction, read only when layout.items does not list the piece.
-  media: { kind: string; cap: string; img?: string; src?: string; poster?: string; file?: string; ar?: number; focal?: [number, number]; at?: [number, number] }[];
+  // small is the 256 px derivative of the item's picture (img, or poster for a video), set once entities:sync published it.
+  media: { kind: string; cap: string; img?: string; src?: string; poster?: string; file?: string; ar?: number; focal?: [number, number]; at?: [number, number]; small?: string }[];
   notes: { txt: string; by: string }[];
   tags: string[];
   // Card still image URL. When set the card shows it instead of playing live media; the video still plays in the entity view.

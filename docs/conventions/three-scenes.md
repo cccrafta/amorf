@@ -1,8 +1,8 @@
 ---
 title: Three.js scene code (WebGPU and TSL)
-updated: 2026-11-06
-last_verified: 2026-11-06
-status: applied in apps/web/components/forms-lab/; the field's scene (components/field/world.ts) follows when it takes the forms
+updated: 2026-11-18
+last_verified: 2026-11-18
+status: applied in apps/web/components/forms-lab/; the field takes the forms behind `?forms=1` (components/field/forms/, EXP-0020)
 ---
 
 # Three.js scene code
@@ -33,6 +33,8 @@ The model is `components/forms-lab/`. It is a feature folder under [folder-struc
 6. **Services are called, not copied.** Fetching media goes through `loadImage` and the texture array through `makeStore` (`texture-store.ts`), which already handle the CORS and cache fact in [deployment.md](../deployment.md). Media URLs come from `@/lib/media/url`, as everywhere else ([services-and-data.md](services-and-data.md)).
 7. **A transition is one progress, staged in `config.ts`.** `scene.ts` advances one linear value; the stages (their shares and order) are named constants with the choreography written once above them; each mesh eases its own part from that value (a spring, a curve), so a timing change is one number. When one thing becomes another, the new thing starts as an exact match of the old (place, size, crop, shade) and the old is hidden only behind it, so there is never a cross-fade or a pop.
 8. **Types cross files with `import type`.** A mesh file imports the `Three` and `Tsl` types from `scene.ts`; three itself is loaded by dynamic import in `scene.ts` only.
+
+9. **Field anchors come from the card's maths, in the eye frame.** The world's camera sits at the origin with `rotation.y = -yaw`, so a form's place per frame is the card's own offset rotated by yaw (`components/field/forms/anchor.ts`, pure), not a world position. Anchors reach the shader in the instance buffer, in slots the field leaves unused (D and C.x, C.y), and each satellite carries a copy of its form's anchor. A TSL `uniformArray` indexed by instance drew nothing in the field on WebGPU (2026-11-18), and the mesh has no free vertex attribute (16 used). A shader that must keep a camera-fixed light under a rotating frame takes the rotation as a uniform.
 
 ## Checking a change
 

@@ -5,6 +5,7 @@ import type { FieldObject } from "@/lib/field-data";
 // Face slots in shader order.
 export const SLOTS = ["front", "right", "back", "left", "top", "bottom"] as const;
 
+// url is what the lab loads: the picture's 256 px derivative when published (media[].derived), else the picture itself.
 export type FacePicture = { url: string; fit: "cover" | "contain"; focal?: [number, number] };
 // ar is the cover's height / width; the form takes it as its proportion. A face is null only when the entity has no picture.
 export type FormFaces = { id: string; title: string; ar: number; faces: (FacePicture | null)[]; board: BoardPicture[] };
@@ -21,20 +22,20 @@ const fitOf = (kind: string): FacePicture["fit"] => (kind === "drawing" || kind 
 export function formFaces(o: FieldObject): FormFaces | null {
   const pics = o.media.flatMap(m => {
     const url = pictureOf(m);
-    return url ? [{ url, fit: fitOf(m.kind), focal: m.focal, ar: m.ar, video: m.kind === "video" }] : [];
+    return url ? [{ url, src: m.small ?? url, fit: fitOf(m.kind), focal: m.focal, ar: m.ar, video: m.kind === "video" }] : [];
   });
   // toFieldObject sets thumb for an image cover and moves a video cover first, so pics[0] is the cover otherwise.
   const coverUrl = o.thumb ?? pics[0]?.url;
   if (!coverUrl) return null;
-  const cover = pics.find(p => p.url === coverUrl) ?? { url: coverUrl, fit: "cover" as const, focal: undefined, ar: undefined, video: false };
+  const cover = pics.find(p => p.url === coverUrl) ?? { url: coverUrl, src: coverUrl, fit: "cover" as const, focal: undefined, ar: undefined, video: false };
   const all = [cover, ...pics.filter(p => p.url !== coverUrl)];
   return {
     // The board shows every picture, cover first as the hero; a missing ratio is taken as square.
-    board: all.map(p => ({ url: p.url, ar: p.ar ?? 1, video: p.video })),
+    board: all.map(p => ({ url: p.src, ar: p.ar ?? 1, video: p.video })),
     id: o.id,
     title: o.t,
     ar: cover.ar ?? 1,
     // The thumbnail is one medium: the cover covers all six faces.
-    faces: SLOTS.map(() => ({ url: cover.url, fit: cover.fit, ...(cover.focal ? { focal: cover.focal } : {}) })),
+    faces: SLOTS.map(() => ({ url: cover.src, fit: cover.fit, ...(cover.focal ? { focal: cover.focal } : {}) })),
   };
 }

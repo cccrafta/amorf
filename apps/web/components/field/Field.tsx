@@ -27,6 +27,7 @@ import * as table from "./table";
 import * as interior from "./interior";
 import * as spaces from "./spaces";
 import { parseMap, mapVals, paintMap } from "./map";
+import { parseForms, formsVals, renderFormsPanel, showPictures, type FormsRt } from "./forms";
 import { parseGl, glVals, paintWorld, disposeWorld, groundPinned, type WorldRt } from "./world";
 import { groundY, wearPull } from "./ground-math";
 import { applyRoute, syncUrl } from "./route";
@@ -159,6 +160,11 @@ export default class Field extends React.Component<Props, State> {
   glOn = false;
   gl: WorldRt | null = null;
   glPending = false;
+  // Forms in the field (forms/): the flag, whether the settings popup is open, and the three.js side once it is built.
+  formsOn = false;
+  formsPanel = false;
+  fm: FormsRt | null = null;
+  fmPending = false;
   // Layout height per card, re-read about once a second (a font or a wrapped title can change it) and not every frame.
   cardH: Record<string, { h: number; t: number }> = {};
   suppressClick = 0;
@@ -203,6 +209,7 @@ export default class Field extends React.Component<Props, State> {
     spaces.init(this);
     this.mapOn = parseMap(location.search);
     this.glOn = parseGl(location.search);
+    this.formsOn = parseForms(location.search);
     // the canvas is rendered from glOn, which is only known now
     if (this.glOn) this.forceUpdate();
     const cols = Math.ceil(Math.sqrt(this.OBJECTS.length));
@@ -444,6 +451,8 @@ export default class Field extends React.Component<Props, State> {
     });
 
     const pinned = groundPinned(this);
+    const fm = this.fm;
+    if (fm) fm.begin();
     const fset = this.state.filter ? this.filterSet : null;
     let best: FieldNode | null = null, bestD = 1e9;
     for (const o of this.OBJECTS) {
@@ -518,6 +527,9 @@ export default class Field extends React.Component<Props, State> {
       el.style.transform = `translate3d(${lx.toFixed(1)}px, ${dy.toFixed(1)}px, ${lz.toFixed(1)}px) rotateY(${wrapDeg.toFixed(2)}deg) translate(-50%, -50%)`;
       if (sl) spaces.fogCard(el, spaces.tint(sl, d));
       this.screenPos[o.id] = { sx, sy, scale };
+      // The same lx, lz, wrapDeg and card height the transform above used, so the form lands on the card's plate.
+      if (fm && pin) fm.place(o.id, { lx, lz, wrapDeg, cardH: this.cardH[o.id].h, yawDeg: cam.yaw, P: this.P }, op * clear);
+      showPictures(el, !(fm && pin && fm.ready(o.id)));
 
       // focus is decided by geometry, not by the dive's dimming — otherwise a
       // card dimmed behind an interior could never become the focused one
@@ -526,6 +538,8 @@ export default class Field extends React.Component<Props, State> {
         if (dist < 300 && dist < bestD) { bestD = dist; best = o; }
       }
     }
+
+    if (fm) fm.end();
 
     // traces are drawn, sheet by sheet and line by line, once the object
     // comes into focus, so a per-mark delay stagger reads as ink settling
@@ -585,7 +599,7 @@ export default class Field extends React.Component<Props, State> {
     if (sl) spaces.paint(this, sl, depth); else this.paintTracks(depth);
     interior.paint(this);
     if (this.mapOn) paintMap(this);
-    if (this.glOn) paintWorld(this);
+    if (this.glOn) paintWorld(this, dt / 1000);
 
     if (this.state.plan) {
       const you = document.querySelector<HTMLElement>('[data-role="planyou"]');
@@ -734,9 +748,10 @@ export default class Field extends React.Component<Props, State> {
     const spaceV = spaces.vals(this, st);
     const mapV = mapVals(this, st);
     const glV = glVals(this);
+    const formsV = formsVals(this);
 
     // Spread order is the override order: a later slice wins a shared key.
-    return { ...base, ...catalogueV, trace, crossed, ...notesV, ...composeV, ...viewV, ...interiorV, seeded, ...planV, ...tableV, ...spaceV, ...mapV, ...glV };
+    return { ...base, ...catalogueV, trace, crossed, ...notesV, ...composeV, ...viewV, ...interiorV, seeded, ...planV, ...tableV, ...spaceV, ...mapV, ...glV, ...formsV };
   }
 
   render() {
@@ -749,6 +764,7 @@ export default class Field extends React.Component<Props, State> {
         {renderStage(v)}
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10, background: "radial-gradient(140% 110% at 50% 50%, transparent 44%, color-mix(in srgb, var(--space-fog, var(--field-bg-dark)) 84%, transparent) 100%)" }} />
         {renderHud(v)}
+        {v.formsPanel && renderFormsPanel(v)}
         {v.jump && renderJump(v, v.jump)}
         {v.focus && renderFocusbar(v, v.focus)}
         {v.hasTrace && !v.mapOn && renderTraceRail(v)}

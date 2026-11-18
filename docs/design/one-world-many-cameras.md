@@ -1,8 +1,8 @@
 ---
 title: One world, many cameras (spatial engine epic), scope and intent
 status: planned
-updated: 2026-11-06
-last_verified: 2026-11-06
+updated: 2026-11-18
+last_verified: 2026-11-18
 ---
 
 # One world, many cameras: scope and intent
@@ -57,7 +57,7 @@ Each step is its own session. Each step names the record it produces.
 
 0. **Study the reference and decide the renderer.** Analyse tesseract: camera choreography, interaction per view, transitions, how it is built. Rewrite ADR-0019 (proposed) to WebGPU-first with TSL. *Done 2026-11-06 from the bundle and the author's case study: [STU-0005](../../research/studies/0005-tesseract-reference/README.md) (bundle, case study and a live viewing) and [ADR-0019](../decisions/adr/0019-three-js-for-the-field-ground-in-a-flagged-spike.md) rewritten, still proposed. Tesseract has two views, not many, so it informs the renderer, camera transitions and the journey view, not the plan or entity views.*
 1. **Scene core.** WebGPURenderer with WebGL2 fallback, and the ground ported to TSL (it used `onBeforeCompile`). Keep the CSS-matched camera check (`components/field/ground-math.ts`) passing while the DOM field still exists. *Built 2026-11-06, awaiting the owner's look on both backends: [EXP-0013](../../research/experiments/0013-scene-core-on-webgpu/README.md). The world (renderer, scene, camera) is `components/field/world.ts`; the ground is its first object; `?gl=webgl2` forces the fallback.*
-2. **Entities in the scene.** Instanced planes with thumbnails, a 3D thumbnail form, MSDF text, picking. *Spike built 2026-11-06, awaiting the owner's look on both backends: [EXP-0014](../../research/experiments/0014-forms-with-media-faces/README.md), a lab page at `/lab/forms` (forms with media faces, cube-to-sphere morph, a first turn animation) outside the field.*
+2. **Entities in the scene.** Instanced planes with thumbnails, a 3D thumbnail form, MSDF text, picking. *Spike built 2026-11-06, awaiting the owner's look on both backends: [EXP-0014](../../research/experiments/0014-forms-with-media-faces/README.md), a lab page at `/lab/forms` (forms with media faces, cube-to-sphere morph, a first turn animation) outside the field.* *Forms in the field, phase 1 built 2026-11-18 behind `?forms=1`, awaiting the owner's look: [EXP-0020](../../research/experiments/0020-forms-in-the-field/README.md), each entity card's picture replaced by its form at the card's own place; a click still opens the DOM entity view.*
 3. **View system.** Field, plan and journey cameras, animated transitions, per-view input. Plan replaces `ui/plan.tsx`.
 4. **Entity views.** Camera pans to the entity, then the exploded view and the flat view. glTF media. *First try in the lab only: click a form, the camera travels in and the form unfolds into its cube net, [EXP-0016](../../research/experiments/0016-entity-view-unfold-in-the-lab/README.md); by default the pictures now fly out into the radial board of all media, [EXP-0017](../../research/experiments/0017-entity-view-board-explode-in-the-lab/README.md). The DOM entity view stays until it is judged.*
 5. **Recording visits.** Consent, a privacy ADR, account-linked events through `apps/api` into D1, shown back in the journey view.
@@ -77,6 +77,8 @@ What each step asks of `apps/api`, D1, R2 and the publish step. Kept here while 
 | 3 | The plan view reads placements per space. | Placements ([DDR-0003](../decisions/ddr/0003-placements-in-plan-units-per-space.md)) | Decided in DDR-0003 |
 | 4 | Where the exploded view's arrangement comes from: authored per entity or a rule per type. If authored, the studio board editor must place media on sides of a 3D form. | Entity display config ([backend.md](backend.md) "Presentation as data"), studio (ADR-0016) | Open question 2 |
 | 2 | Satellites ([EXP-0018](../../research/experiments/0018-satellite-forms-around-the-entity-form/README.md)): none new; the count is the picture count of `media[]` and placement is seeded by the entity id. | None | Nothing to build |
+| 2 | Field load ([EXP-0019](../../research/experiments/0019-field-load-from-small-derivatives/README.md)): a 256 px WebP per picture, made at publish and named by the source's hash, so the lab fetches 2.8 MB, not 72.6 MB. A KTX2 texture array follows only if the request count decides the load. | `entities:sync` derive step, R2 `entities/<id>/derived/` ([ADR-0020](../decisions/adr/0020-small-picture-derivatives-at-publish.md)) | Built in the publish script; no `apps/api` |
+| 2 | Forms in the field ([EXP-0020](../../research/experiments/0020-forms-in-the-field/README.md)): none new; anchors come from the card's layout and the pictures from the existing derivatives. | None | Nothing to build |
 | 4 | glTF/GLB as a media kind: upload limits, processing (Draco or meshopt, KTX2 textures), poster image. | Media kind registry ([backend.md](backend.md) "Presentation as data", "Media storage") | Needed |
 | 5 | Visit events tied to an account: position samples and time per entity, a consent record, retention, deletion and export endpoints. | D1 tables behind `apps/api`, auth (ADR-0015), a privacy ADR | Needed; privacy ADR first |
 | 5 | Sampling rate and event volume against D1 limits on the Free plan. | [backend-decisions.md](backend-decisions.md) | Open question 3 |

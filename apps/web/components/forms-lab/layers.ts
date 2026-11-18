@@ -14,7 +14,8 @@ export type Layers = {
   // Layer per satellite candidate, per form: entry k is board picture k + 1 (the cover is on the faces); -1 when the layer budget is spent.
   satLayers: number[][];
   total: number;
-  load: (onLayer: (done: number) => void) => void;
+  // onLayer gets the count done, the layer that just finished and whether its picture was written (false: it failed).
+  load: (onLayer: (done: number, layer: number, ok: boolean) => void) => void;
   dispose: () => void;
 };
 
@@ -86,10 +87,11 @@ export function makeLayers(THREE: Three, forms: FormFaces[], plain: Rgb, ink: Rg
       const pump = () => {
         if (!alive || next >= pics.length) return;
         const i = next++, p = pics[i];
+        let ok = false;
         loadImage(p.url)
-          .then(img => { if (alive) write(SLOTS.length + i, draw(img, p)); img.close(); })
+          .then(img => { if (alive) write(SLOTS.length + i, draw(img, p)); img.close(); ok = true; })
           .catch(err => console.warn("[forms-lab] picture failed", p.url, err))
-          .finally(() => { if (!alive) return; onLayer(++done); pump(); });
+          .finally(() => { if (!alive) return; onLayer(++done, SLOTS.length + i, ok); pump(); });
       };
       for (let k = 0; k < FACE_PARALLEL; k++) pump();
     },

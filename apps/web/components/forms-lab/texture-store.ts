@@ -3,12 +3,20 @@ import type { Three } from "./scene";
 import { LAYER } from "./config";
 import { mediaUrl, crossOriginMedia } from "@/lib/media/url";
 
-// cache: "reload" skips the browser's copy: the field loads the same files as plain <img> without CORS, and Chrome reuses
-// that cached response, which has no Access-Control-Allow-Origin, for this CORS request (docs/deployment.md, Known issue).
+// Requests and response bytes since the lab started (startLab resets it), for the lab's status line. Bytes are body sizes,
+// so a response from the browser cache counts too.
+export const fetched = { requests: 0, bytes: 0 };
+
+// cache: "reload" skips the browser's copy of a full picture: the field loads the same files as plain <img> without CORS, and
+// Chrome reuses that cached response, which has no Access-Control-Allow-Origin, for this CORS request (docs/deployment.md,
+// Known issue). Derivatives (entities/<id>/derived/) are only ever fetched here, with CORS, so their cached copy is safe.
+const DERIVED = /^\/entities\/[^/]+\/derived\/[^/]+$/;
 export function loadImage(url: string): Promise<ImageBitmap> {
-  return fetch(mediaUrl(url), { mode: crossOriginMedia ? "cors" : "same-origin", cache: "reload" })
+  const cache: RequestCache = DERIVED.test(url) ? "default" : "reload";
+  fetched.requests++;
+  return fetch(mediaUrl(url), { mode: crossOriginMedia ? "cors" : "same-origin", cache })
     .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.blob(); })
-    .then(b => createImageBitmap(b));
+    .then(b => { fetched.bytes += b.size; return createImageBitmap(b); });
 }
 
 // A DataArrayTexture of LAYER² RGBA layers, all transparent until written, and the one way to write a layer into it.

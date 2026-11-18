@@ -3,6 +3,7 @@
 import type * as ThreeNS from "three/webgpu";
 import type { FormFaces } from "./faces";
 import { makeLayers } from "./layers";
+import { fetched } from "./texture-store";
 import { makeBoard } from "./board-mesh";
 import { boardLayout, departure, landing, type BoardBounds } from "./board";
 import { makeFlight } from "./flight";
@@ -23,6 +24,9 @@ export type EntityView = "board" | "net";
 export type LabOptions = { entityView: EntityView; motion: Motion; turn: boolean; drift: boolean; settle: boolean; satOn: boolean; satRadius: number; satSize: number; satSpeed: number; mixed: boolean; test: boolean; autoMorph: boolean; shape: number } & Outline;
 export type LabStatus = {
   backend: "webgpu" | "webgl2"; forms: number; sats: number; pictures: number; loaded: number; layers: number; draws: number; shape: number;
+  // Load measures (EXP-0019): picture requests and bytes so far, and ms since navigation to the first frame submitted and to
+  // the last form picture attempted (failures count as done); null until reached.
+  requests: number; bytes: number; frameMs: number | null; picturesMs: number | null;
 };
 // The entity view: the title of the form in view, or null in the free view.
 export type LabView = { title: string } | null;
@@ -64,6 +68,7 @@ export async function startLab(
     import("three/webgpu"), import("three/tsl"), import("three/addons/controls/OrbitControls.js"),
   ]);
 
+  fetched.requests = fetched.bytes = 0;
   const renderer = new THREE.WebGPURenderer({ canvas, antialias: true, forceWebGL: forceWebGL(location.search) });
   await renderer.init();
   const backend = (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? "webgpu" : "webgl2";
@@ -450,8 +455,12 @@ export async function startLab(
   window.addEventListener("keydown", onKey);
 
   let loaded = 0, draws = 0, last = performance.now(), lastStatus = 0, morphT = Math.acos(1 - 2 * opts.shape) / (2 * Math.PI) * MORPH_PERIOD;
-  const status = () => onStatus({ backend, forms: forms.length, sats: sats.length, pictures, loaded, layers: layers.total, draws, shape: u.shape.value });
-  layers.load(done => { loaded = done; });
+  let frameMs: number | null = null, picturesMs: number | null = pictures === 0 ? performance.now() : null;
+  const status = () => onStatus({
+    backend, forms: forms.length, sats: sats.length, pictures, loaded, layers: layers.total, draws, shape: u.shape.value,
+    requests: fetched.requests, bytes: fetched.bytes, frameMs, picturesMs,
+  });
+  layers.load(done => { loaded = done; if (done === pictures) picturesMs = performance.now(); });
 
   renderer.setAnimationLoop(() => {
     const now = performance.now(), dt = Math.min(0.1, (now - last) / 1000);
@@ -465,6 +474,7 @@ export async function startLab(
     }
     if (focus) stepView(dt); else controls.update();
     renderer.render(scene, camera);
+    frameMs ??= performance.now();
     draws = renderer.info.render.drawCalls;
     if (now - lastStatus > 250) { lastStatus = now; status(); }
   });
